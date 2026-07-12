@@ -1,0 +1,108 @@
+{
+  "errors": {
+    "required": "Sepertinya kolom ini terlewat!",
+    "invalidUuid": "Hmm, format ID-nya sepertinya kurang tepat.",
+    "invalidCurrencyLength": "Kode mata uang harus tepat 3 karakter ya.",
+    "validation_failed": "Periksa kolom yang ditandai.",
+    "file_upload_unsupported": "Upload file belum didukung di sini. Gunakan URL gambar.",
+    "invalid_upload": "Unggah file gambar yang valid.",
+    "file_too_large": "Ukuran gambar maksimal 5MB.",
+    "upload_not_configured": "Upload gambar belum dikonfigurasi.",
+    "upload_failed": "Gambar belum bisa diunggah.",
+    "rate_limited": "Terlalu banyak permintaan. Coba lagi sebentar lagi.",
+    "internal": "Terjadi kesalahan. Coba lagi.",
+    "notExist": "Maaf, data yang kamu cari tidak ditemukan!",
+    "project": {
+      "creation_failed": "Proyek belum bisa dibuat.",
+      "update_failed": "Proyek belum bisa diperbarui.",
+      "delete_failed": "Proyek belum bisa dihapus.",
+      "missing_user": "Akunmu belum siap untuk membuat proyek.",
+      "duplicate_slug": "Slug proyek ini sudah digunakan."
+    },
+    "projects": {
+      "fetch_failed": "Proyek belum bisa dimuat.",
+      "network_error": "Server proyek belum bisa dijangkau."
+    }
+  },
+  "project-create": {
+    "page-title": "Ayo Buat Proyek!",
+    "title": "Judul Proyek",
+    "title-placeholder": "Apa nama proyek ini?",
+    "slug": "URL Kustom",
+    "slug-placeholder": "Masukkan URL yang keren untuk proyekmu",
+    "description": "Deskripsi",
+    "description-placeholder": "Ceritakan sedikit tentang proyek ini...",
+    "thumb_url": "Thumbnail",
+    "thumb_url-placeholder": "Tempelkan tautan untuk gambar thumbnail",
+    "status": "Status Saat Ini",
+    "status-draft": "Masih Draf",
+    "status-published": "Sudah Terbit!",
+    "submit": "Buat Proyek",
+    "cancel": "Batal"
+  },
+  "project-update": {
+    "page-title": "Perbarui Proyekmu",
+    "title": "Judul Proyek",
+    "title-placeholder": "Apa nama baru untuk proyek ini?",
+    "slug": "URL Kustom",
+    "slug-placeholder": "Perbarui URL proyekmu",
+    "description": "Deskripsi",
+    "description-placeholder": "Perbarui cerita tentang proyek ini...",
+    "thumb_url": "Thumbnail",
+    "thumb_url-placeholder": "Perbarui tautan gambar thumbnail",
+    "status": "Status Saat Ini",
+    "status-draft": "Masih Draf",
+    "status-published": "Sudah Terbit!",
+    "submit": "Simpan Perubahan",
+    "cancel": "Batal"
+  },
+  "project-page": {
+    "title": "Detail Proyek",
+    "edit": "Edit Proyek",
+    "delete": "Hapus Proyek",
+    "currency": "Mata Uang",
+    "fee": "Biaya"
+  },
+  "project-list": {
+    "title": "Proyek-Proyek Hebatmu",
+    "add-project": "+ Mulai Proyek Baru",
+    "table-title": "Judul",
+    "table-slug": "URL",
+    "table-description": "Deskripsi",
+    "table-thumb_url": "Thumbnail",
+    "table-status": "Status",
+    "table-currency": "Mata Uang",
+    "table-fee": "Biaya",
+    "table-actions": "Aksi",
+    "table-status-draft": "Draf",
+    "table-status-published": "Terbit",
+    "confirm-delete": "Yakin ingin menghapusnya? Tindakan ini tidak bisa dibatalkan lho!",
+    "cancel": "Pertahankan"
+  },
+  "notFound": {
+    "title": "404 - Uh oh! Halaman Tidak Ditemukan",
+    "description": "Halaman yang Anda cari tidak ada.",
+    "backHome": "Kembali ke Beranda"
+  },
+  "dashboard": {
+    "title": "Dasbor",
+    "subtitle": "Snapshot proyek dan penagihan langsung Anda.",
+    "unavailable": "Dasbor tidak tersedia",
+    "totalRevenue": "Total pendapatan",
+    "activeProjects": "Proyek aktif",
+    "pendingInvoices": "Faktur tertunda",
+    "avgProjectValue": "Rata-rata nilai proyek",
+    "paidInvoices": "{count} faktur dibayar",
+    "paidInvoice": "{count} faktur dibayar",
+    "noPaidInvoices": "Belum ada faktur yang dibayar",
+    "totalProjects": "{count} total proyek",
+    "totalProject": "{count} total proyek",
+    "createFirstProject": "Buat proyek pertama Anda",
+    "outstanding": "{amount} belum dibayar",
+    "nothingOutstanding": "Tidak ada yang belum dibayar",
+    "basedOnActive": "Berdasarkan proyek aktif",
+    "waitingForData": "Menunggu data proyek",
+    "noActivity": "Belum ada aktivitas workspace",
+    "noActivityDesc": "Buat proyek atau kirim faktur untuk mengisi dasbor ini."
+  }
+}

@@ -1,0 +1,173 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ROLE {
+  CLIENT
+  FREELANCER
+}
+
+enum ProjectStatus {
+  ONBOARDING
+  RESEARCH
+  MODELLING
+  DEPLOYMENT
+  MAINTENANCE
+  COMPLETED
+  CANCELLED
+}
+
+enum InvoicePaymentMethod {
+  BANK_TRANSFER
+  CREDIT_CARD
+  DEBIT_CARD
+  STRIPE
+  PAYPAL
+  XENDIT
+  MIDTRANS
+  CASH
+  OTHER
+}
+
+enum InvoiceCurrency {
+  USD
+  INR
+  IDR
+  GBP
+  EUR
+  CNY
+  JPY
+  KRW
+  CAD
+  AUD
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  REFUNDED
+}
+
+model FreelancerProfile {
+  id     String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId String @unique @db.Uuid
+  name   String
+
+  stripeAccountId   String?
+  paypalAccountId   String?
+  xenditAccountId   String?
+  midtransAccountId String?
+
+  user     User      @relation("UserProfile", fields: [userId], references: [id])
+  invoices Invoice[]
+}
+
+model User {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clerkUserId  String   @unique
+  email        String   @db.VarChar(255)
+  role         ROLE     @default(CLIENT)
+  firstName    String?  @db.VarChar(50)
+  instanceName String?  @db.VarChar(50)
+  lastName     String?  @db.VarChar(50)
+  imageUrl     String?  @db.VarChar(255)
+  createdAt    DateTime @default(now()) @db.Timestamp(6)
+  updatedAt    DateTime @default(now()) @db.Timestamp(6)
+
+  clientProjects     Project[] @relation("ClientProjects")
+  freelancerProjects Project[] @relation("FreelancerProjects")
+
+  profile FreelancerProfile? @relation("UserProfile")
+
+  @@index([id])
+}
+
+model Project {
+  id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title            String        @db.VarChar(255)
+  slug             String        @unique
+  access_key       String
+  description      String?       @db.Text
+  status           ProjectStatus @default(ONBOARDING)
+  thumb_url        String?       @db.VarChar(255)
+  brief_image_urls String[]      @default([])
+  createdAt        DateTime      @default(now()) @db.Timestamp(6)
+  updatedAt        DateTime      @default(now()) @db.Timestamp(6)
+
+  clientId     String @db.Uuid
+  client       User   @relation("ClientProjects", fields: [clientId], references: [id])
+  freelancerId String @db.Uuid
+  freelancer   User   @relation("FreelancerProjects", fields: [freelancerId], references: [id])
+
+  milestones Milestone[]
+  invoices   Invoice[]
+  handsouts  Handsout[]
+
+  @@index([id])
+}
+
+model Milestone {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  project_id  String   @db.Uuid
+  title       String   @db.VarChar(255)
+  description String?  @db.Text
+  due_date    DateTime @db.Timestamp(6)
+  createdAt   DateTime @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime @default(now()) @db.Timestamp(6)
+
+  project Project @relation(fields: [project_id], references: [id])
+
+  @@index([id])
+  @@index([project_id])
+}
+
+model Invoice {
+  id             String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  project_id     String               @db.Uuid
+  freelancerId   String               @db.Uuid
+  clientName     String
+  title          String               @db.VarChar(255)
+  notes          String?              @db.Text
+  currency       InvoiceCurrency      @default(IDR)
+  amount         BigInt
+  payment_method InvoicePaymentMethod
+  status         InvoiceStatus        @default(DRAFT)
+  due_date       DateTime             @db.Timestamp(6)
+  createdAt      DateTime             @default(now()) @db.Timestamp(6)
+
+  providerTxId String?
+
+  project    Project           @relation(fields: [project_id], references: [id])
+  freelancer FreelancerProfile @relation(fields: [freelancerId], references: [id])
+
+  @@index([id])
+  @@index([project_id])
+}
+
+model Handsout {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  project_id  String   @db.Uuid
+  title       String   @db.VarChar(255)
+  description String?  @db.Text
+  content_url String?  @db.VarChar(255)
+  thumb_url   String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime @default(now()) @db.Timestamp(6)
+
+  project Project @relation(fields: [project_id], references: [id])
+
+  @@index([id])
+  @@index([project_id])
+}

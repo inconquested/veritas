@@ -1,0 +1,108 @@
+{
+  "errors": {
+    "required": "¡Uy, parece que te faltó este campo!",
+    "invalidUuid": "Hmm, ese formato de ID no parece correcto.",
+    "invalidCurrencyLength": "La moneda debe tener exactamente 3 caracteres.",
+    "validation_failed": "Revisa los campos marcados.",
+    "file_upload_unsupported": "La carga de archivos aún no está disponible aquí. Usa una URL de imagen.",
+    "invalid_upload": "Sube un archivo de imagen válido.",
+    "file_too_large": "La imagen debe pesar 5 MB o menos.",
+    "upload_not_configured": "La carga de imágenes no está configurada.",
+    "upload_failed": "No se pudo subir la imagen.",
+    "rate_limited": "Demasiadas solicitudes. Inténtalo de nuevo pronto.",
+    "internal": "Algo salió mal. Inténtalo de nuevo.",
+    "notExist": "¡Lo sentimos, no pudimos encontrar lo que buscas!",
+    "project": {
+      "creation_failed": "No pudimos crear el proyecto.",
+      "update_failed": "No pudimos actualizar el proyecto.",
+      "delete_failed": "No pudimos eliminar el proyecto.",
+      "missing_user": "Tu cuenta aún no está lista para proyectos.",
+      "duplicate_slug": "Ya existe un proyecto con este slug."
+    },
+    "projects": {
+      "fetch_failed": "No pudimos cargar los proyectos.",
+      "network_error": "No pudimos conectar con el servidor de proyectos."
+    }
+  },
+  "project-create": {
+    "page-title": "¡Vamos a crear un proyecto!",
+    "title": "Título del Proyecto",
+    "title-placeholder": "¿Cómo deberíamos llamar a este proyecto?",
+    "slug": "URL Personalizada",
+    "slug-placeholder": "Ingresa una URL genial para tu proyecto",
+    "description": "Descripción",
+    "description-placeholder": "Cuéntanos un poco sobre este proyecto...",
+    "thumb_url": "Miniatura",
+    "thumb_url-placeholder": "Pega un enlace para tu miniatura",
+    "status": "Estado Actual",
+    "status-draft": "Solo un Borrador",
+    "status-published": "¡Publicado y en línea!",
+    "submit": "Crear Proyecto",
+    "cancel": "Cancelar"
+  },
+  "project-update": {
+    "page-title": "Actualiza tu proyecto",
+    "title": "Título del Proyecto",
+    "title-placeholder": "¿Cuál es el nuevo título?",
+    "slug": "URL Personalizada",
+    "slug-placeholder": "Actualiza la URL de tu proyecto",
+    "description": "Descripción",
+    "description-placeholder": "Actualiza la historia de este proyecto...",
+    "thumb_url": "Miniatura",
+    "thumb_url-placeholder": "Actualiza el enlace de la miniatura",
+    "status": "Estado Actual",
+    "status-draft": "Solo un Borrador",
+    "status-published": "¡Publicado y en línea!",
+    "submit": "Guardar Cambios",
+    "cancel": "Cancelar"
+  },
+  "project-page": {
+    "title": "Detalles del Proyecto",
+    "edit": "Editar Proyecto",
+    "delete": "Eliminar Proyecto",
+    "currency": "Moneda",
+    "fee": "Tarifa"
+  },
+  "project-list": {
+    "title": "Tus Increíbles Proyectos",
+    "add-project": "+ Empezar un Nuevo Proyecto",
+    "table-title": "Título",
+    "table-slug": "URL",
+    "table-description": "Descripción",
+    "table-thumb_url": "Miniatura",
+    "table-status": "Estado",
+    "table-currency": "Moneda",
+    "table-fee": "Tarifa",
+    "table-actions": "Acciones",
+    "table-status-draft": "Borrador",
+    "table-status-published": "Publicado",
+    "confirm-delete": "¿Seguro que quieres eliminarlo? ¡No podemos deshacer esto!",
+    "cancel": "Mantenerlo"
+  },
+  "notFound": {
+    "title": "404 - ¡Uh oh! Página No Encontrada",
+    "description": "La página que buscas no existe.",
+    "backHome": "Volver al Inicio"
+  },
+  "dashboard": {
+    "title": "Panel de Control",
+    "subtitle": "Tu instantánea de proyecto y facturación en vivo.",
+    "unavailable": "Panel no disponible",
+    "totalRevenue": "Ingresos totales",
+    "activeProjects": "Proyectos activos",
+    "pendingInvoices": "Facturas pendientes",
+    "avgProjectValue": "Valor promedio del proyecto",
+    "paidInvoices": "{count} facturas pagadas",
+    "paidInvoice": "{count} factura pagada",
+    "noPaidInvoices": "Aún no hay facturas pagadas",
+    "totalProjects": "{count} proyectos totales",
+    "totalProject": "{count} proyecto total",
+    "createFirstProject": "Crea tu primer proyecto",
+    "outstanding": "{amount} pendiente",
+    "nothingOutstanding": "Nada pendiente",
+    "basedOnActive": "Basado en proyectos activos",
+    "waitingForData": "Esperando datos del proyecto",
+    "noActivity": "Aún no hay actividad en el espacio de trabajo",
+    "noActivityDesc": "Crea un proyecto o envía una factura para llenar este panel."
+  }
+}

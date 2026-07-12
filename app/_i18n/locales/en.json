@@ -1,0 +1,108 @@
+{
+  "errors": {
+    "required": "Looks like you missed this field!",
+    "invalidUuid": "Hmm, that ID format doesn't look quite right.",
+    "invalidCurrencyLength": "The currency code needs to be exactly 3 characters.",
+    "validation_failed": "Please check the highlighted fields.",
+    "file_upload_unsupported": "File upload isn't supported here yet. Use an image URL instead.",
+    "invalid_upload": "Upload a valid image file.",
+    "file_too_large": "Image must be 5MB or smaller.",
+    "upload_not_configured": "Image upload is not configured.",
+    "upload_failed": "Image upload failed.",
+    "rate_limited": "Too many requests. Please try again shortly.",
+    "internal": "Something went wrong. Please try again.",
+    "notExist": "Sorry, we couldn't find the data you're looking for!",
+    "project": {
+      "creation_failed": "We couldn't create the project.",
+      "update_failed": "We couldn't update the project.",
+      "delete_failed": "We couldn't delete the project.",
+      "missing_user": "Your account is not ready for projects yet.",
+      "duplicate_slug": "A project with this slug already exists."
+    },
+    "projects": {
+      "fetch_failed": "We couldn't load projects.",
+      "network_error": "We couldn't reach the project server."
+    }
+  },
+  "project-create": {
+    "page-title": "Let's Create a Project!",
+    "title": "Project Title",
+    "title-placeholder": "What should we call this project?",
+    "slug": "Custom URL",
+    "slug-placeholder": "Enter a catchy URL for your project",
+    "description": "Description",
+    "description-placeholder": "Tell us a bit about this project...",
+    "thumb_url": "Thumbnail",
+    "thumb_url-placeholder": "Paste a link to a cool thumbnail",
+    "status": "Current Status",
+    "status-draft": "Just a Draft",
+    "status-published": "Published & Live!",
+    "submit": "Create Project",
+    "cancel": "Cancel"
+  },
+  "project-update": {
+    "page-title": "Update Your Project",
+    "title": "Project Title",
+    "title-placeholder": "What's the new title?",
+    "slug": "Custom URL",
+    "slug-placeholder": "Update your project URL",
+    "description": "Description",
+    "description-placeholder": "Update the story behind this project...",
+    "thumb_url": "Thumbnail",
+    "thumb_url-placeholder": "Update the thumbnail link",
+    "status": "Current Status",
+    "status-draft": "Just a Draft",
+    "status-published": "Published & Live!",
+    "submit": "Save Changes",
+    "cancel": "Cancel"
+  },
+  "project-page": {
+    "title": "Project Details",
+    "edit": "Edit Project",
+    "delete": "Delete Project",
+    "currency": "Currency",
+    "fee": "Fee"
+  },
+  "project-list": {
+    "title": "Your Awesome Projects",
+    "add-project": "+ Start a New Project",
+    "table-title": "Title",
+    "table-slug": "URL",
+    "table-description": "Description",
+    "table-thumb_url": "Thumbnail",
+    "table-status": "Status",
+    "table-currency": "Currency",
+    "table-fee": "Fee",
+    "table-actions": "Actions",
+    "table-status-draft": "Draft",
+    "table-status-published": "Published",
+    "confirm-delete": "Are you sure you want to delete this? We can't undo this action!",
+    "cancel": "Keep it"
+  },
+  "notFound": {
+    "title": "404 - Uh oh! Page Not Found",
+    "description": "The page you are looking for does not exist.",
+    "backHome": "Go back to Home"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Your live project and billing snapshot.",
+    "unavailable": "Dashboard unavailable",
+    "totalRevenue": "Total revenue",
+    "activeProjects": "Active projects",
+    "pendingInvoices": "Pending invoices",
+    "avgProjectValue": "Avg. project value",
+    "paidInvoices": "{count} paid invoices",
+    "paidInvoice": "{count} paid invoice",
+    "noPaidInvoices": "No paid invoices yet",
+    "totalProjects": "{count} total projects",
+    "totalProject": "{count} total project",
+    "createFirstProject": "Create your first project",
+    "outstanding": "{amount} outstanding",
+    "nothingOutstanding": "Nothing outstanding",
+    "basedOnActive": "Based on active projects",
+    "waitingForData": "Waiting for project data",
+    "noActivity": "No workspace activity yet",
+    "noActivityDesc": "Create a project or send an invoice to populate this dashboard."
+  }
+}

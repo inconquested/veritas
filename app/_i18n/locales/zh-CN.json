@@ -1,0 +1,108 @@
+{
+  "errors": {
+    "required": "此字段为必填项",
+    "invalidUuid": "无效的ID格式",
+    "invalidCurrencyLength": "货币必须恰好是3个字符",
+    "validation_failed": "请检查标记的字段。",
+    "file_upload_unsupported": "此处暂不支持文件上传。请改用图片 URL。",
+    "invalid_upload": "请上传有效的图片文件。",
+    "file_too_large": "图片必须小于或等于 5MB。",
+    "upload_not_configured": "图片上传尚未配置。",
+    "upload_failed": "图片上传失败。",
+    "rate_limited": "请求过多，请稍后再试。",
+    "internal": "出现错误，请重试。",
+    "notExist": "您查找的数据不存在。",
+    "project": {
+      "creation_failed": "无法创建项目。",
+      "update_failed": "无法更新项目。",
+      "delete_failed": "无法删除项目。",
+      "missing_user": "您的账号尚未准备好创建项目。",
+      "duplicate_slug": "使用此 slug 的项目已存在。"
+    },
+    "projects": {
+      "fetch_failed": "无法加载项目。",
+      "network_error": "无法连接项目服务器。"
+    }
+  },
+  "project-create": {
+    "page-title": "创建项目",
+    "title": "标题",
+    "title-placeholder": "请输入项目标题",
+    "slug": "URL",
+    "slug-placeholder": "请输入项目URL",
+    "description": "描述",
+    "description-placeholder": "请输入项目描述",
+    "thumb_url": "缩略图",
+    "thumb_url-placeholder": "请输入缩略图URL",
+    "status": "状态",
+    "status-draft": "草稿",
+    "status-published": "已发布",
+    "submit": "创建",
+    "cancel": "取消"
+  },
+  "project-update": {
+    "page-title": "更新项目",
+    "title": "标题",
+    "title-placeholder": "请输入项目标题",
+    "slug": "URL",
+    "slug-placeholder": "请输入项目URL",
+    "description": "描述",
+    "description-placeholder": "请输入项目描述",
+    "thumb_url": "缩略图",
+    "thumb_url-placeholder": "请输入缩略图URL",
+    "status": "状态",
+    "status-draft": "草稿",
+    "status-published": "已发布",
+    "submit": "更新",
+    "cancel": "取消"
+  },
+  "project-page": {
+    "title": "项目",
+    "edit": "编辑",
+    "delete": "删除",
+    "currency": "货币",
+    "fee": "费用"
+  },
+  "project-list": {
+    "title": "项目列表",
+    "add-project": "添加项目",
+    "table-title": "标题",
+    "table-slug": "URL",
+    "table-description": "描述",
+    "table-thumb_url": "缩略图",
+    "table-status": "状态",
+    "table-currency": "货币",
+    "table-fee": "费用",
+    "table-actions": "操作",
+    "table-status-draft": "草稿",
+    "table-status-published": "已发布",
+    "confirm-delete": "确定要删除吗？",
+    "cancel": "取消"
+  },
+  "notFound": {
+    "title": "404 - 哎呀！页面未找到",
+    "description": "您查找的页面不存在。",
+    "backHome": "返回首页"
+  },
+  "dashboard": {
+    "title": "仪表板",
+    "subtitle": "您的实时项目和计费快照。",
+    "unavailable": "仪表板不可用",
+    "totalRevenue": "总收入",
+    "activeProjects": "活跃项目",
+    "pendingInvoices": "待处理发票",
+    "avgProjectValue": "平均项目价值",
+    "paidInvoices": "{count} 张已付发票",
+    "paidInvoice": "{count} 张已付发票",
+    "noPaidInvoices": "尚无已付发票",
+    "totalProjects": "共 {count} 个项目",
+    "totalProject": "共 {count} 个项目",
+    "createFirstProject": "创建您的第一个项目",
+    "outstanding": "未付 {amount}",
+    "nothingOutstanding": "无未付款项",
+    "basedOnActive": "基于活跃项目",
+    "waitingForData": "等待项目数据",
+    "noActivity": "工作区暂无活动",
+    "noActivityDesc": "创建项目或发送发票以填充此仪表板。"
+  }
+}
