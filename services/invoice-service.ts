@@ -1,5 +1,6 @@
 import { currentUser } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import { PaymentGatewayStrategy } from "./vendor/payment/constants";
 import {
   ChargeInvoiceInput,
@@ -46,7 +47,10 @@ function clientName(project: {
 }
 
 export class InvoiceService {
-  public constructor(private readonly defaultPaymentMethod = "STRIPE") {}
+  public constructor(
+    private readonly defaultPaymentMethod = "STRIPE",
+    private readonly db: typeof prisma = prisma,
+  ) {}
 
   public getStrategyForInvoice(
     input: Partial<ChargeInvoiceInput>,
@@ -67,7 +71,7 @@ export class InvoiceService {
     }
 
     try {
-      const storedInvoice = await prisma.invoice.findUnique({
+      const storedInvoice = await this.db.invoice.findUnique({
         where: { id: input.id },
       });
       const resolvedInput: ChargeInvoiceInput = {
@@ -90,13 +94,21 @@ export class InvoiceService {
       const paymentResult = await strategy.chargeInvoice(resolvedInput);
 
       if (paymentResult.success && paymentResult.providerTxId) {
-        await prisma.invoice.update({
-          where: { id: input.id },
-          data: {
+        try {
+          await this.db.invoice.update({
+            where: { id: input.id },
+            data: {
+              providerTxId: paymentResult.providerTxId,
+              status: "SENT",
+            },
+          });
+        } catch (dbError) {
+          console.error("CRITICAL: Gateway charge succeeded but DB update failed", {
+            invoiceId: input.id,
             providerTxId: paymentResult.providerTxId,
-            status: "SENT",
-          },
-        });
+            error: dbError instanceof Error ? dbError.message : String(dbError),
+          });
+        }
       }
 
       return paymentResult;
@@ -141,7 +153,7 @@ export class InvoiceService {
     }
 
     const [project, clerkUser] = await Promise.all([
-      prisma.project.findUnique({
+      this.db.project.findUnique({
         where: { id: input.project_id },
         select: invoiceInclude.project.select,
       }),
@@ -149,7 +161,7 @@ export class InvoiceService {
     ]);
 
     const freelancer = clerkUser
-      ? await prisma.freelancerProfile.findFirst({
+      ? await this.db.freelancerProfile.findFirst({
           where: { user: { clerkUserId: clerkUser.id } },
           select: { id: true },
         })
@@ -159,7 +171,7 @@ export class InvoiceService {
       throw new Error("errors.invoice.creation_failed");
     }
 
-    const invoice = await prisma.invoice.create({
+    const invoice = await this.db.invoice.create({
       data: {
         project_id: input.project_id,
         freelancerId: freelancer.id,
@@ -182,7 +194,7 @@ export class InvoiceService {
   }
 
   public async getInvoice(invoiceId: string) {
-    const invoice = await prisma.invoice.findUnique({
+    const invoice = await this.db.invoice.findUnique({
       where: { id: invoiceId },
       include: invoiceInclude,
     });
@@ -194,17 +206,24 @@ export class InvoiceService {
     return invoice;
   }
 
-  public async getInvoices(limit = 10) {
-    return prisma.invoice.findMany({
+  public async getInvoices(
+    limit = 10,
+    scope?: Prisma.InvoiceWhereInput,
+  ) {
+    return this.db.invoice.findMany({
+      where: scope,
       take: Math.max(1, Math.min(limit, 100)),
       orderBy: { createdAt: "desc" },
       include: invoiceInclude,
     });
   }
 
-  public async getProjectInvoices(projectId: string) {
-    return prisma.invoice.findMany({
-      where: { project_id: projectId },
+  public async getProjectInvoices(
+    projectId: string,
+    scope?: Prisma.InvoiceWhereInput,
+  ) {
+    return this.db.invoice.findMany({
+      where: { project_id: projectId, ...scope },
       orderBy: { createdAt: "desc" },
       include: invoiceInclude,
     });
@@ -228,7 +247,7 @@ export class InvoiceService {
     if (input.project_id !== undefined)
       updateData.project_id = input.project_id;
 
-    const invoice = await prisma.invoice.update({
+    const invoice = await this.db.invoice.update({
       where: { id: invoiceId },
       data: updateData,
     });
@@ -241,7 +260,7 @@ export class InvoiceService {
   }
 
   public async deleteInvoice(invoiceId: string): Promise<boolean> {
-    const result = await prisma.invoice.delete({
+    const result = await this.db.invoice.delete({
       where: { id: invoiceId },
     });
 

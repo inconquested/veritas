@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { handle } from "hono/vercel";
 import { projectsApp } from "./projects";
 import { invoicesApp } from "./invoices";
+import { escrowApp } from "./escrow";
 
 const app = new Hono({ strict: false }).basePath("/api/v1");
 
@@ -110,7 +111,8 @@ app.get("/hello", (c) => {
 
 const routes = app
   .route("/projects", projectsApp)
-  .route("/invoices", invoicesApp);
+  .route("/invoices", invoicesApp)
+  .route("/escrow", escrowApp);
 
 export const runtime = "edge";
 

@@ -9,7 +9,9 @@ export default clerkMiddleware(async (auth, req) => {
 const isPublicRoute = createRouteMatcher([
   "/",
   "/sign-in(.*)",
+  "/sign-up(.*)",
   "/sign-out(.*)",
+  "/api/v1/escrow/webhook",
 ]);
 
 export const config = {

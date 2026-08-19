@@ -1,14 +1,17 @@
-import { Snap, SnapTransactionParameters } from "midtrans-client";
+import MidtransClient from 'midtrans-client';
+import type { SnapTransactionParameters } from 'midtrans-client';
 import { PaymentGatewayStrategy } from "./constants";
 import {
   MidtransChargeInvoiceInput,
   type MidtransPaymentResult,
 } from "@/schemas";
 
+const { Snap } = MidtransClient;
+
 type FlexibleSnapParameters = SnapTransactionParameters & Record<string, any>;
 
 export class MidtransStrategy implements PaymentGatewayStrategy {
-  private readonly snapClient: Snap;
+  private readonly snapClient: InstanceType<typeof Snap>;
 
   constructor() {
     const serverKey = process.env.MIDTRANS_SERVER_KEY;

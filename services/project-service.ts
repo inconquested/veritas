@@ -1,29 +1,36 @@
-import { currentUser } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { CreateProjectInput, UpdateProjectInput } from "@/schemas";
 import { SearchQueryParams } from "./constants";
 import { Prisma } from "@/generated/prisma/client";
-import { mediaService } from "./vendor/media/media-service";
+import { mediaService, MediaService } from "./vendor/media/media-service";
 
 export class ProjectService {
-  private readonly mediaService = mediaService;
+  constructor(
+    private readonly db: typeof prisma = prisma,
+    private readonly media: MediaService = mediaService,
+  ) {}
 
   /**
    * Creates a new project database record.
-   * Edge case: Enforces structural defaults and handles unique constraint failures (e.g., slug collision).
+   * The owning freelancer and client come from the authenticated request
+   * context (`ctx`), never from the client-supplied payload — a caller cannot
+   * assign a project to arbitrary users. Handles slug collisions safely.
    */
-  public async createProject(d: CreateProjectInput) {
+  public async createProject(
+    d: CreateProjectInput,
+    ctx: { freelancerId: string; clientId: string },
+  ) {
     try {
       let brief_image_urls: string[] = [];
       let thumb_url: string | undefined = d.thumb_url ?? undefined;
 
       if (d.brief_image_files) {
-        brief_image_urls = await this.mediaService.uploadMediaMultiple(
+        brief_image_urls = await this.media.uploadMediaMultiple(
           d.brief_image_files as File[],
         );
       }
       if (d.thumb_file) {
-        thumb_url = await this.mediaService.uploadMediaSingle(
+        thumb_url = await this.media.uploadMediaSingle(
           d.thumb_file as File,
         );
       }
@@ -33,33 +40,19 @@ export class ProjectService {
         thumb_file,
         thumb_url: _thumb_url,
         milestones,
-        freelancer_id,
-        client_id,
+        // Ignore any caller-supplied ownership fields; authorization owns these.
+        freelancer_id: _freelancer_id,
+        client_id: _client_id,
         ...raw
       } = d;
 
-      let freelancerId = freelancer_id;
-      let clientId = client_id;
-
-      if (!freelancerId || !clientId) {
-        const clerkUser = await currentUser();
-        const user = clerkUser
-          ? await prisma.user.findUnique({
-              where: { clerkUserId: clerkUser.id },
-              select: { id: true },
-            })
-          : null;
-
-        // ponytail: use the signed-in user for both relations until client picking exists
-        freelancerId ??= user?.id;
-        clientId ??= user?.id;
-      }
+      const { freelancerId, clientId } = ctx;
 
       if (!freelancerId || !clientId) {
         throw new Error("errors.project.missing_user");
       }
 
-      const project = await prisma.$transaction(async (tx) => {
+      const project = await this.db.$transaction(async (tx) => {
         const project = await tx.project.create({
           data: {
             ...raw,
@@ -102,26 +95,35 @@ export class ProjectService {
    * Fetches a paginated, sorted list of projects with flexible text search.
    * Edge case: Prevents strict literal matching across multiple text fields simultaneously using OR logic.
    */
-  public async getProjects({
-    limit = 10,
-    page = 1,
-    search = "",
-    sort = "asc",
-    sortBy = "id",
-  }: SearchQueryParams) {
+  public async getProjects(
+    {
+      limit = 10,
+      page = 1,
+      search = "",
+      sort = "asc",
+      sortBy = "id",
+    }: SearchQueryParams,
+    scope: Prisma.ProjectWhereInput = {},
+  ) {
     const sanitizedPage = Math.max(1, page);
     const sanitizedLimit = Math.max(1, Math.min(limit, 100)); // Cap limits to guard DB performance
 
-    // Construct dynamic search filters using a case-insensitive logical OR
+    // Ownership scope (from the caller's identity) is ANDed with the optional
+    // case-insensitive text search so a user only ever sees their own projects.
     const searchFilter: Prisma.ProjectWhereInput = search.trim()
       ? {
-          OR: [
-            { title: { contains: search, mode: "insensitive" } },
-            { description: { contains: search, mode: "insensitive" } },
-            { slug: { contains: search, mode: "insensitive" } },
+          AND: [
+            scope,
+            {
+              OR: [
+                { title: { contains: search, mode: "insensitive" } },
+                { description: { contains: search, mode: "insensitive" } },
+                { slug: { contains: search, mode: "insensitive" } },
+              ],
+            },
           ],
         }
-      : {};
+      : scope;
 
     try {
       const sortKeys: Record<string, string> = {
@@ -135,7 +137,7 @@ export class ProjectService {
       };
       const orderBy = sortKeys[sortBy ?? ""] ?? "id";
 
-      return await prisma.project.findMany({
+      return await this.db.project.findMany({
         skip: (sanitizedPage - 1) * sanitizedLimit,
         take: sanitizedLimit,
         where: searchFilter,
@@ -181,7 +183,7 @@ export class ProjectService {
     if (!id) throw new Error("Project ID parameter is required.");
 
     try {
-      const project = await prisma.project.findUnique({
+      const project = await this.db.project.findUnique({
         where: { id },
         include: {
           freelancer: true,
@@ -208,7 +210,7 @@ export class ProjectService {
     if (!slug) throw new Error("Project slug parameter is required.");
 
     try {
-      const project = await prisma.project.findUnique({
+      const project = await this.db.project.findUnique({
         where: { slug },
         include: {
           freelancer: true,
@@ -239,7 +241,7 @@ export class ProjectService {
     if (!id) throw new Error("Target Project ID is required for execution.");
 
     try {
-      const existing = await prisma.project.findUnique({
+      const existing = await this.db.project.findUnique({
         where: { id },
         select: { thumb_url: true, brief_image_urls: true },
       });
@@ -257,16 +259,16 @@ export class ProjectService {
       const brief_image_urls = brief_image_files?.length
         ? [
             ...(existing.brief_image_urls ?? []),
-            ...(await this.mediaService.uploadMediaMultiple(
+            ...(await this.media.uploadMediaMultiple(
               brief_image_files as File[],
             )),
           ]
         : (existing.brief_image_urls ?? []);
       const thumb_url = thumb_file
-        ? await this.mediaService.uploadMediaSingle(thumb_file as File)
+        ? await this.media.uploadMediaSingle(thumb_file as File)
         : (inputThumbUrl ?? existing.thumb_url ?? undefined);
 
-      await prisma.$transaction(async (tx) => {
+      await this.db.$transaction(async (tx) => {
         await tx.project.update({
           where: { id },
           data: { ...raw, brief_image_urls, thumb_url },
@@ -334,7 +336,7 @@ export class ProjectService {
       });
 
       if (thumb_url !== existing.thumb_url) {
-        await this.mediaService.deleteMedia(existing.thumb_url);
+        await this.media.deleteMedia(existing.thumb_url);
       }
 
       return this.getProjectById(id);
@@ -359,15 +361,15 @@ export class ProjectService {
   public async deleteProject(id: string) {
     if (!id) throw new Error("Target Project ID is required for execution.");
     try {
-      const project = await prisma.project.findUnique({
+      const project = await this.db.project.findUnique({
         where: { id },
         select: { thumb_url: true },
       });
 
-      await prisma.project.delete({
+      await this.db.project.delete({
         where: { id },
       });
-      await this.mediaService.deleteMedia(project?.thumb_url);
+      await this.media.deleteMedia(project?.thumb_url);
       return true;
     } catch (error) {
       if (

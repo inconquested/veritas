@@ -22,30 +22,24 @@ export class PaypalStrategy implements PaymentGatewayStrategy {
     const auth = Buffer.from(
       `${this.PAYPAL_CLIENT_ID}:${this.PAYPAL_CLIENT_SECRET}`,
     ).toString("base64");
-    try {
-      const response = await fetch(
-        `${this.PAYPAL_API_BASE_URL}/v1/oauth2/token`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Basic ${auth}`,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: "grant_type=client_credentials",
+    const response = await fetch(
+      `${this.PAYPAL_API_BASE_URL}/v1/oauth2/token`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${auth}`,
+          "Content-Type": "application/x-www-form-urlencoded",
         },
-      );
+        body: "grant_type=client_credentials",
+      },
+    );
 
-      if (!response.ok) {
-        throw new Error(`PayPal auth failed: ${response.status}`);
-      }
-
-      const data = (await response.json()) as { access_token: string };
-      return data.access_token;
-    } catch (error) {
-      throw new Error(
-        `Failed to retrieve PayPal authentication token: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
+    if (!response.ok) {
+      throw new Error(`PayPal auth failed: ${response.status}`);
     }
+
+    const data = (await response.json()) as { access_token: string };
+    return data.access_token;
   }
 
   async chargeInvoice(input: PaypalChargeInvoiceInput): Promise<PaypalPaymentResult> {
@@ -54,7 +48,6 @@ export class PaypalStrategy implements PaymentGatewayStrategy {
       const invoiceTitle = input.title?.trim() || `Invoice #${input.id}`;
       const currency = (input.currency ?? "USD").toUpperCase();
       const amount = this.formatAmount(input.amount);
-      const baseUrl = this.getBaseUrl();
 
       const response = await fetch(
         `${this.PAYPAL_API_BASE_URL}/v2/invoicing/invoices`,
@@ -74,9 +67,6 @@ export class PaypalStrategy implements PaymentGatewayStrategy {
                 due_date: formatInvoiceDate(input.due_date ?? new Date()),
               }
             },
-            invoicer:{
-              
-            }
           }),
         },
       );
@@ -127,14 +117,5 @@ export class PaypalStrategy implements PaymentGatewayStrategy {
     const cents = parseInt(normalized, 10);
     const dollars = (cents / 100).toFixed(2);
     return dollars;
-  }
-
-  private getBaseUrl(): string {
-    const configured =
-      process.env.NEXT_PUBLIC_APP_URL ??
-      process.env.APP_URL ??
-      process.env.NEXT_PUBLIC_SITE_URL ??
-      "http://localhost:3000";
-    return configured.replace(/\/$/, "");
   }
 }

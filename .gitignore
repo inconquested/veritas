@@ -49,3 +49,4 @@ next-env.d.ts
 #AI development artifacts
 TASK.md
 agent_scrapes
+/tmp

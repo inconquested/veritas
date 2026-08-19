@@ -3,7 +3,6 @@ import { PaymentGatewayStrategy } from "./constants";
 import { XenditChargeInvoiceInput, type XenditPaymentResult } from "@/schemas";
 
 export class XenditStrategy implements PaymentGatewayStrategy {
-  private readonly xenditClient: any;
   private readonly xenditInvoiceClient: Invoice;
 
   constructor() {
@@ -13,8 +12,8 @@ export class XenditStrategy implements PaymentGatewayStrategy {
       throw new Error("XENDIT_SECRET_KEY is not configured");
     }
 
-    this.xenditClient = new Xendit({ secretKey });
-    this.xenditInvoiceClient = this.xenditClient.Invoice;
+    const client = new Xendit({ secretKey });
+    this.xenditInvoiceClient = client.Invoice;
   }
 
   async chargeInvoice(

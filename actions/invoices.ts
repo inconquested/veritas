@@ -12,9 +12,17 @@ import {
 } from "@/schemas";
 import { client } from "@/lib/api-client";
 import { validateWithTranslation } from "@/lib/utils";
+import {
+  guardAction,
+  timeoutSignal,
+  TIMEOUT_ERROR_KEY,
+} from "@/lib/action-timeout";
 
 async function apiInit() {
-  return { headers: { cookie: (await cookies()).toString() } };
+  return {
+    headers: { cookie: (await cookies()).toString() },
+    init: { signal: timeoutSignal() },
+  };
 }
 
 async function apiFailure(response: Response, fallback: string) {
@@ -39,28 +47,36 @@ export async function createInvoice(raw: unknown) {
   }
 
   const payload: CreateInvoiceInput = valid.data!;
-  const response = await (client as any).api.v1.invoices.$post(
-    { json: payload },
-    await apiInit(),
-  );
+  return guardAction(
+    async () => {
+      const response = await (client as any).api.v1.invoices.$post(
+        { json: payload },
+        await apiInit(),
+      );
 
-  if (!response.ok) {
-    return {
+      if (!response.ok) {
+        return {
+          success: false,
+          errorKey: await apiFailure(response, "errors.invoice.creation_failed"),
+        };
+      }
+
+      const resBody = (await response.json()) as { data?: unknown };
+      revalidatePath("/invoices");
+      return { success: true, data: resBody.data };
+    },
+    ({ timedOut }) => ({
       success: false,
-      errorKey: await apiFailure(response, "errors.invoice.creation_failed"),
-    };
-  }
-
-  const resBody = (await response.json()) as { data?: unknown };
-  revalidatePath("/invoices");
-  return { success: true, data: resBody.data };
+      errorKey: timedOut ? TIMEOUT_ERROR_KEY : "errors.invoice.creation_failed",
+    }),
+  );
 }
 
 export async function chargeInvoice(raw: unknown, invoiceId: string) {
   const t = await getTranslations("errors");
   const valid = validateWithTranslation<ChargeInvoiceInput>(
     ChargeInvoiceSchema,
-    raw,
+    { ...(raw as Record<string, unknown>), id: invoiceId },
     t,
   );
   if (!valid.success) {
@@ -68,35 +84,43 @@ export async function chargeInvoice(raw: unknown, invoiceId: string) {
   }
 
   const payload: ChargeInvoiceInput = valid.data!;
-  const response = await (client as any).api.v1.invoices[":id"].charge.$post(
-    {
-      param: { id: invoiceId },
-      json: payload,
+  return guardAction(
+    async () => {
+      const response = await (client as any).api.v1.invoices[":id"].charge.$post(
+        {
+          param: { id: invoiceId },
+          json: payload,
+        },
+        await apiInit(),
+      );
+
+      if (!response.ok) {
+        if (response.headers.get("content-type")?.includes("application/json")) {
+          const resBody = (await response.json()) as {
+            errorKey?: string;
+            data?: { errorMessage?: string };
+          };
+          return {
+            success: false,
+            errorKey: resBody.errorKey ?? "errors.invoice.charge_failed",
+            data: resBody.data,
+          };
+        }
+        return {
+          success: false,
+          errorKey: `errors.invoice.charge_failed_${response.status}`,
+        };
+      }
+
+      const resBody = (await response.json()) as { data?: unknown };
+      revalidatePath("/invoices");
+      return { success: true, data: resBody.data };
     },
-    await apiInit(),
-  );
-
-  if (!response.ok) {
-    if (response.headers.get("content-type")?.includes("application/json")) {
-      const resBody = (await response.json()) as {
-        errorKey?: string;
-        data?: { errorMessage?: string };
-      };
-      return {
-        success: false,
-        errorKey: resBody.errorKey ?? "errors.invoice.charge_failed",
-        data: resBody.data,
-      };
-    }
-    return {
+    ({ timedOut }) => ({
       success: false,
-      errorKey: `errors.invoice.charge_failed_${response.status}`,
-    };
-  }
-
-  const resBody = (await response.json()) as { data?: unknown };
-  revalidatePath("/invoices");
-  return { success: true, data: resBody.data };
+      errorKey: timedOut ? TIMEOUT_ERROR_KEY : "errors.invoice.charge_failed",
+    }),
+  );
 }
 
 export async function updateInvoice(raw: unknown, invoiceId: string) {
@@ -111,79 +135,111 @@ export async function updateInvoice(raw: unknown, invoiceId: string) {
   }
 
   const payload: UpdateInvoiceInput = valid.data!;
-  const response = await (client as any).api.v1.invoices[":id"].$put(
-    {
-      param: { id: invoiceId },
-      json: payload,
+  return guardAction(
+    async () => {
+      const response = await (client as any).api.v1.invoices[":id"].$put(
+        {
+          param: { id: invoiceId },
+          json: payload,
+        },
+        await apiInit(),
+      );
+
+      if (!response.ok) {
+        return {
+          success: false,
+          errorKey: await apiFailure(response, "errors.invoice.update_failed"),
+        };
+      }
+
+      const resBody = (await response.json()) as { data?: unknown };
+      revalidatePath("/invoices");
+      return { success: true, data: resBody.data };
     },
-    await apiInit(),
-  );
-
-  if (!response.ok) {
-    return {
+    ({ timedOut }) => ({
       success: false,
-      errorKey: await apiFailure(response, "errors.invoice.update_failed"),
-    };
-  }
-
-  const resBody = (await response.json()) as { data?: unknown };
-  revalidatePath("/invoices");
-  return { success: true, data: resBody.data };
+      errorKey: timedOut ? TIMEOUT_ERROR_KEY : "errors.invoice.update_failed",
+    }),
+  );
 }
 
 export async function getInvoice(invoiceId: string) {
-  const response = await (client as any).api.v1.invoices[":id"].$get(
-    {
-      param: { id: invoiceId },
+  return guardAction(
+    async () => {
+      const response = await (client as any).api.v1.invoices[":id"].$get(
+        {
+          param: { id: invoiceId },
+        },
+        await apiInit(),
+      );
+
+      if (!response.ok) {
+        return {
+          success: false,
+          errorKey: await apiFailure(response, "errors.notExist"),
+        };
+      }
+
+      const resBody = (await response.json()) as { data?: unknown };
+      return { success: true, invoice: resBody.data };
     },
-    await apiInit(),
-  );
-
-  if (!response.ok) {
-    return {
+    ({ timedOut }) => ({
       success: false,
-      errorKey: await apiFailure(response, "errors.notExist"),
-    };
-  }
-
-  const resBody = (await response.json()) as { data?: unknown };
-  return { success: true, invoice: resBody.data };
+      errorKey: timedOut ? TIMEOUT_ERROR_KEY : "errors.notExist",
+    }),
+  );
 }
 
 export async function listInvoices(projectId?: string) {
-  const response = await (client as any).api.v1.invoices.$get(
-    {
-      query: projectId ? { projectId } : undefined,
+  return guardAction(
+    async () => {
+      const response = await (client as any).api.v1.invoices.$get(
+        {
+          query: projectId ? { projectId } : undefined,
+        },
+        await apiInit(),
+      );
+
+      if (!response.ok) {
+        return {
+          success: false,
+          errorKey: await apiFailure(response, "errors.invoices.fetch_failed"),
+        };
+      }
+
+      const resBody = (await response.json()) as { data?: unknown };
+      return { success: true, invoices: resBody.data };
     },
-    await apiInit(),
-  );
-
-  if (!response.ok) {
-    return {
+    ({ timedOut }) => ({
       success: false,
-      errorKey: await apiFailure(response, "errors.invoices.fetch_failed"),
-    };
-  }
-
-  const resBody = (await response.json()) as { data?: unknown };
-  return { success: true, invoices: resBody.data };
+      errorKey: timedOut ? TIMEOUT_ERROR_KEY : "errors.invoices.fetch_failed",
+    }),
+  );
 }
 
 export async function deleteInvoice(invoiceId: string) {
-  const response = await (client as any).api.v1.invoices[":id"].$delete(
-    {
-      param: { id: invoiceId },
+  return guardAction(
+    async () => {
+      const response = await (client as any).api.v1.invoices[":id"].$delete(
+        {
+          param: { id: invoiceId },
+        },
+        await apiInit(),
+      );
+
+      if (!response.ok) {
+        return {
+          success: false,
+          errorKey: await apiFailure(response, "errors.invoice.delete_failed"),
+        };
+      }
+
+      const resBody = (await response.json()) as { success?: boolean };
+      return { success: resBody.success ?? false };
     },
-    await apiInit(),
-  );
-
-  if (!response.ok) {
-    return {
+    ({ timedOut }) => ({
       success: false,
-      errorKey: await apiFailure(response, "errors.invoice.delete_failed"),
-    };
-  }
-
-  const resBody = (await response.json()) as { success?: boolean };
-  return { success: resBody.success ?? true };
+      errorKey: timedOut ? TIMEOUT_ERROR_KEY : "errors.invoice.delete_failed",
+    }),
+  );
 }

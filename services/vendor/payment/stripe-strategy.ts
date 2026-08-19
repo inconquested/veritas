@@ -57,12 +57,14 @@ export class StripeStrategy implements PaymentGatewayStrategy {
         },
         client_reference_id: input.id ?? "",
         expires_at: this.DateDiffToSecondEpoch(input.due_date),
-        payment_intent_data: {
-          application_fee_amount: 0,
-          transfer_data: {
-            destination: input.destination_account_id ?? "",
-          },
-        },
+        payment_intent_data: input.destination_account_id
+          ? {
+              application_fee_amount: 0,
+              transfer_data: {
+                destination: input.destination_account_id,
+              },
+            }
+          : undefined,
       });
 
       return {
