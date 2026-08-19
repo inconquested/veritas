@@ -43,11 +43,48 @@ const InvoiceCurrencySchema = z.enum([
   "INR",
 ]);
 
+// Money is stored as a BigInt (minor-unit-free integer) but arrives over JSON as
+// a string or number — JSON has no bigint. Coerce every transport form to a
+// non-negative bigint so both the client action and the API validate identically.
+const AmountSchema = z
+  .union([z.bigint(), z.number(), z.string()])
+  .transform((value, ctx) => {
+    try {
+      const normalized =
+        typeof value === "bigint"
+          ? value
+          : typeof value === "number"
+            ? BigInt(Math.trunc(value))
+            : BigInt(value.trim());
+      if (normalized < 0n) {
+        ctx.addIssue({ code: "custom", message: "errors.required" });
+        return z.NEVER;
+      }
+      return normalized;
+    } catch {
+      ctx.addIssue({ code: "custom", message: "errors.required" });
+      return z.NEVER;
+    }
+  });
+
+// Dates arrive as ISO strings over JSON or as Date from a server action. Accept
+// both and normalize to a valid Date; reject anything unparseable.
+const DueDateSchema = z
+  .union([z.date(), z.string(), z.number()])
+  .transform((value, ctx) => {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      ctx.addIssue({ code: "custom", message: "errors.required" });
+      return z.NEVER;
+    }
+    return date;
+  });
+
 // --- Milestone Schemas ---
 const CreateMilestoneSchema = z.object({
   project_id: z.uuid({ error: "errors.invalidUuid" }),
   title: z
-    .string({ error: "errors.invalidUuid" })
+    .string({ error: "errors.required" })
     .min(1, { error: "errors.required" })
     .max(255),
   description: z.string().optional().nullable(),
@@ -71,18 +108,22 @@ export const CreateInvoiceSchema = z.object({
     .string({ error: "errors.required" })
     .min(1, { error: "errors.required" })
     .max(255),
-  notes: z.string().optional().nullable(),
-  currency: z
-    .string({ error: "errors.required" })
-    .length(3, { error: "errors.required" }),
-  amount: z.bigint({ error: "errors.required" }),
+  notes: z.string().max(2000).optional().nullable(),
+  currency: InvoiceCurrencySchema,
+  amount: AmountSchema,
   payment_method: InvoicePaymentMethodSchema,
   status: InvoiceStatusSchema.optional(),
-  due_date: z.date({ error: "errors.required" }),
+  due_date: DueDateSchema,
 });
 
 export const ChargeInvoiceSchema = CreateInvoiceSchema.partial().extend({
   id: z.uuid({ error: "errors.invalidUuid" }),
+  // Gateway routing fields the charge dialog sends. Kept here so the schema
+  // doesn't silently strip them before they reach the payment strategy.
+  destination_account_id: z.string().max(255).optional(),
+  payerEmail: z.email({ error: "errors.invalidEmail" }).optional(),
+  stripeCustomerId: z.string().optional(),
+  stripePaymentMethodId: z.string().optional(),
 });
 export type ChargeInvoiceInput = z.infer<typeof ChargeInvoiceSchema>;
 export type CreateInvoiceInput = z.infer<typeof CreateInvoiceSchema>;
@@ -138,15 +179,15 @@ export type UpdateInvoiceInput = z.infer<typeof UpdateInvoiceSchema>;
 export const InvoiceResultSchema = z.object({
   id: z.uuid({ error: "errors.invalidUuid" }),
   project_id: z.uuid({ error: "errors.invalidUuid" }),
-  title: z.string({ error: "errors.invalidUuid" }),
+  title: z.string({ error: "errors.required" }),
   notes: z.string().optional().nullable(),
-  currency: z.string({ error: "errors.invalidUuid" }),
-  amount: z.bigint({ error: "errors.invalidUuid" }),
+  currency: z.string({ error: "errors.required" }),
+  amount: z.bigint({ error: "errors.required" }),
   payment_method: InvoicePaymentMethodSchema,
   status: InvoiceStatusSchema,
-  due_date: z.date({ error: "errors.invalidUuid" }),
-  created_at: z.date({ error: "errors.invalidUuid" }),
-  updated_at: z.date({ error: "errors.invalidUuid" }),
+  due_date: z.date({ error: "errors.required" }),
+  created_at: z.date({ error: "errors.required" }),
+  updated_at: z.date({ error: "errors.required" }),
 });
 export type InvoiceResult = z.infer<typeof InvoiceResultSchema>;
 
@@ -194,6 +235,55 @@ export type PaymentResult =
   | PaypalPaymentResult
   | StripePaymentResult
   | z.infer<typeof PaymentResultSchema>;
+
+// --- Escrow Schemas ---
+export const EscrowStateSchema = z.enum([
+  "INITIALIZED",
+  "FUNDS_HELD",
+  "DISPUTED",
+  "RELEASED",
+  "REFUNDED",
+]);
+export type EscrowState = z.infer<typeof EscrowStateSchema>;
+
+// Actions a signed-in user (client/freelancer) may trigger from the UI.
+export const EscrowManualActionSchema = z.enum(["release", "dispute", "refund"]);
+export type EscrowManualAction = z.infer<typeof EscrowManualActionSchema>;
+
+// Body for a manual escrow action. idempotencyKey is optional — the server
+// mints one when absent, but callers should send a stable key on retries.
+export const EscrowActionInputSchema = z.object({
+  idempotencyKey: z.string().min(8).max(200).optional(),
+  reason: z.string().max(1000).optional(),
+});
+export type EscrowActionInput = z.infer<typeof EscrowActionInputSchema>;
+
+// Incoming gateway webhook. Strict bounds so malformed/oversized payloads are
+// rejected before they reach the state machine.
+export const EscrowWebhookSchema = z.object({
+  eventId: z.string().min(1).max(200),
+  invoiceId: z.uuid({ error: "errors.invalidUuid" }),
+  type: z.enum([
+    "payment.captured",
+    "payment.settled",
+    "payment.refunded",
+    "charge.disputed",
+  ]),
+  provider: z.string().max(50).optional(),
+  amount: z.union([z.number().int().nonnegative(), z.string().regex(/^\d+$/)]).optional(),
+});
+export type EscrowWebhookInput = z.infer<typeof EscrowWebhookSchema>;
+
+// Webhook event type -> escrow transition.
+export const WEBHOOK_ACTION: Record<
+  EscrowWebhookInput["type"],
+  "fund" | "refund" | "dispute"
+> = {
+  "payment.captured": "fund",
+  "payment.settled": "fund",
+  "payment.refunded": "refund",
+  "charge.disputed": "dispute",
+};
 
 // --- Handsout Schemas ---
 const CreateHandsoutSchema = z.object({

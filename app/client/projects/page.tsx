@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/pagination";
 import { Progress } from "@/components/ui/progress";
 import { CalendarDays, FolderKanban, Search } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 type Project = {
   id: string;
@@ -50,11 +51,12 @@ function toArray<T>(value: unknown): T[] {
 
 function formatDate(
   value: string | Date | null | undefined,
+  emptyLabel: string,
   options?: Intl.DateTimeFormatOptions,
 ) {
-  if (!value) return "No deadline set";
+  if (!value) return emptyLabel;
   const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return "No deadline set";
+  if (Number.isNaN(date.getTime())) return emptyLabel;
   return date.toLocaleDateString(
     "en-US",
     options ?? { month: "short", day: "numeric" },
@@ -76,6 +78,7 @@ export default async function ClientProjectsPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const t = await getTranslations("client");
   const params = (await searchParams) ?? {};
   const search = typeof params.search === "string" ? params.search.trim() : "";
   const pageParam = typeof params.page === "string" ? Number(params.page) : 1;
@@ -97,10 +100,9 @@ export default async function ClientProjectsPage({
     <div className="space-y-6 p-6 lg:p-8">
       <div className="space-y-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Your Projects</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t("projects.title")}</h1>
           <p className="text-sm text-muted-foreground">
-            {projects.length} active workspace{projects.length === 1 ? "" : "s"}{" "}
-            synced from the backend.
+            {t("projects.subtitle", { count: projects.length })}
           </p>
         </div>
 
@@ -109,7 +111,7 @@ export default async function ClientProjectsPage({
           <Input
             name="search"
             defaultValue={search}
-            placeholder="Search projects..."
+            placeholder={t("projects.searchPlaceholder")}
             className="pl-9"
           />
         </form>
@@ -121,16 +123,15 @@ export default async function ClientProjectsPage({
             <EmptyMedia variant="icon">
               <FolderKanban className="h-4 w-4" />
             </EmptyMedia>
-            <EmptyTitle>No projects yet</EmptyTitle>
+            <EmptyTitle>{t("projects.emptyTitle")}</EmptyTitle>
             <EmptyDescription>
-              Once the backend returns client-visible projects, they&apos;ll
-              appear here with progress, schedule and linked detail pages.
+              {t("projects.emptyDesc")}
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             {!result.success ? (
               <p className="text-sm text-destructive">
-                Could not load projects right now.
+                {t("projects.loadError")}
               </p>
             ) : null}
           </EmptyContent>
@@ -166,24 +167,24 @@ export default async function ClientProjectsPage({
                               variant="outline"
                               className={`text-xs ${statusColors[project.status] ?? "bg-muted text-muted-foreground border-border"}`}
                             >
-                              {project.status}
+                              {t(`projectStatus.${project.status}`)}
                             </Badge>
                           ) : null}
                         </div>
 
                         <p className="line-clamp-2 text-sm text-muted-foreground">
-                          {project.description ??
-                            "This project is live in your workspace. Open it to review milestones, deliverables and billing touchpoints."}
+                          {project.description ?? t("projects.descFallback")}
                         </p>
 
                         <div>
                           <div className="mb-1.5 flex justify-between text-xs text-muted-foreground">
                             <span>
-                              {milestones.length} milestone
-                              {milestones.length === 1 ? "" : "s"} planned
+                              {t("projects.milestonesPlanned", {
+                                count: milestones.length,
+                              })}
                             </span>
                             <span className="font-medium text-foreground">
-                              {progress}% mapped
+                              {t("projects.mapped", { progress })}
                             </span>
                           </div>
                           <Progress value={progress} className="h-2" />
@@ -192,7 +193,9 @@ export default async function ClientProjectsPage({
 
                       <div className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
                         <CalendarDays className="h-3.5 w-3.5" />
-                        Due {formatDate(primaryDueDate)}
+                        {t("projects.due", {
+                          date: formatDate(primaryDueDate, t("projects.noDeadline")),
+                        })}
                       </div>
                     </div>
                   </CardContent>
@@ -216,7 +219,7 @@ export default async function ClientProjectsPage({
               </PaginationItem>
               <PaginationItem>
                 <span className="px-3 text-sm text-muted-foreground">
-                  Page {page}
+                  {t("projects.page", { page })}
                 </span>
               </PaginationItem>
               <PaginationItem>

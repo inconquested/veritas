@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import type { Project, Milestone, Invoice } from "@/generated/prisma/client";
 import {
@@ -42,6 +45,7 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project }: ProjectCardProps) {
+  const t = useTranslations("project-list");
   const dueDate =
     project.milestones.length > 0
       ? new Date(
@@ -78,7 +82,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.24em] text-muted-foreground/80">
-                    Project
+                    {t("card-eyebrow")}
                   </p>
                   <h2 className="text-base font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">
                     {project.title}
@@ -93,26 +97,26 @@ export function ProjectCard({ project }: ProjectCardProps) {
               </div>
 
               <p className="line-clamp-2 text-sm text-muted-foreground">
-                {project.description?.trim() || "A fresh project ready for the next milestone."}
+                {project.description?.trim() || t("card-empty-description")}
               </p>
 
               <div className="mt-auto grid gap-3 sm:grid-cols-2">
                 <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
                   <CalendarDays className="h-4 w-4" />
-                  <span>Due {formatDate(dueDate)}</span>
+                  <span>{t("card-due", { date: formatDate(dueDate) })}</span>
                 </div>
                 <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
                   <FileText className="h-4 w-4" />
-                  <span>{project.milestones.length} milestones</span>
+                  <span>{t("card-milestones", { count: project.milestones.length })}</span>
                 </div>
                 <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
                   <CircleDollarSign className="h-4 w-4" />
-                  <span>{project.invoices.length} invoices</span>
+                  <span>{t("card-invoices", { count: project.invoices.length })}</span>
                 </div>
                 {nextMilestone ? (
                   <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
                     <Clock3 className="h-4 w-4" />
-                    <span>Next {formatDate(nextMilestone.due_date)}</span>
+                    <span>{t("card-next", { date: formatDate(nextMilestone.due_date) })}</span>
                   </div>
                 ) : null}
               </div>
@@ -127,19 +131,19 @@ export function ProjectCard({ project }: ProjectCardProps) {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-foreground">
-                    Project snapshot
+                    {t("card-snapshot")}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {project.description?.trim()
                       ? project.description
-                      : "No additional details were provided for this project yet."}
+                      : t("card-no-details")}
                   </p>
                 </div>
                 <Link
                   href={`/freelancer/projects/${project.id}`}
                   className="inline-flex items-center justify-center gap-2 rounded-full border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
                 >
-                  View project
+                  {t("card-view")}
                   <ArrowUpRight className="h-4 w-4" />
                 </Link>
               </div>

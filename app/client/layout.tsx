@@ -36,6 +36,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Fragment } from "react";
+import { useTranslations } from "next-intl";
 import {useInitial} from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -52,37 +53,6 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
-/* ─── Navigation config ─── */
-const navMain: NavItem[] = [
-  {
-    title: "Overview",
-    icon: Home,
-    href: "/client/homepage",
-  },
-  {
-    title: "Projects",
-    icon: FolderOpen,
-    href: "/client/projects",
-    badge: "3",
-    children: [
-      { title: "All Projects", href: "/client/projects" },
-      { title: "Active", href: "/client/projects?status=active" },
-      { title: "Completed", href: "/client/projects?status=completed" },
-    ],
-  },
-  {
-    title: "Invoices",
-    icon: FileText,
-    href: "/client/invoices",
-    badge: "2",
-    children: [
-      { title: "All Invoices", href: "/client/invoices" },
-      { title: "Pending", href: "/client/invoices?status=pending" },
-      { title: "Paid", href: "/client/invoices?status=paid" },
-    ],
-  },
-];
-
 export default function ClientLayout({
   children,
 }: {
@@ -91,13 +61,45 @@ export default function ClientLayout({
   const pathname = usePathname();
   const { signOut } = useClerk();
   const {user} = useUser();
+  const t = useTranslations("client");
+
+  /* ─── Navigation config ─── */
+  const navMain: NavItem[] = [
+    {
+      title: t("nav.overview"),
+      icon: Home,
+      href: "/client/homepage",
+    },
+    {
+      title: t("nav.projects"),
+      icon: FolderOpen,
+      href: "/client/projects",
+      badge: "3",
+      children: [
+        { title: t("nav.allProjects"), href: "/client/projects" },
+        { title: t("nav.active"), href: "/client/projects?status=active" },
+        { title: t("nav.completed"), href: "/client/projects?status=completed" },
+      ],
+    },
+    {
+      title: t("nav.invoices"),
+      icon: FileText,
+      href: "/client/invoices",
+      badge: "2",
+      children: [
+        { title: t("nav.allInvoices"), href: "/client/invoices" },
+        { title: t("nav.pending"), href: "/client/invoices?status=pending" },
+        { title: t("nav.paid"), href: "/client/invoices?status=paid" },
+      ],
+    },
+  ];
 
   useKeyboardShortcuts([
-    { key: "h", href: "/client/homepage", description: "Go to Overview", requiresPrefix: true },
-    { key: "o", href: "/client/homepage", description: "Go to Overview", requiresPrefix: true },
-    { key: "p", href: "/client/projects", description: "Go to Projects", requiresPrefix: true },
-    { key: "i", href: "/client/invoices", description: "Go to Invoices", requiresPrefix: true },
-    { key: "s", href: "/client/settings", description: "Go to Settings", requiresPrefix: true },
+    { key: "h", href: "/client/homepage", description: t("shortcuts.goOverview"), requiresPrefix: true },
+    { key: "o", href: "/client/homepage", description: t("shortcuts.goOverview"), requiresPrefix: true },
+    { key: "p", href: "/client/projects", description: t("shortcuts.goProjects"), requiresPrefix: true },
+    { key: "i", href: "/client/invoices", description: t("shortcuts.goInvoices"), requiresPrefix: true },
+    { key: "s", href: "/client/settings", description: t("shortcuts.goSettings"), requiresPrefix: true },
   ]);
 
   return (
@@ -126,7 +128,7 @@ export default function ClientLayout({
         {/* ─── Main nav ─── */}
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel>Platform</SidebarGroupLabel>
+            <SidebarGroupLabel>{t("nav.platform")}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {navMain.map((item) => {
@@ -179,7 +181,7 @@ export default function ClientLayout({
                         {user?.firstName} {user?.lastName}
                       </span>
                       <span className="truncate text-xs text-muted-foreground">
-                        {user?.emailAddresses[0]?.emailAddress || "No email found"}
+                        {user?.emailAddresses[0]?.emailAddress || t("nav.noEmail")}
                       </span>
                     </div>
                     <ChevronsUpDown className="ml-auto size-4" />
@@ -203,7 +205,7 @@ export default function ClientLayout({
                           {user?.firstName} {user?.lastName}
                         </span>
                         <span className="truncate text-xs text-muted-foreground">
-                          {user?.emailAddresses[0]?.emailAddress || "No email found"}
+                          {user?.emailAddresses[0]?.emailAddress || t("nav.noEmail")}
                         </span>
                       </div>
                     </div>
@@ -216,14 +218,14 @@ export default function ClientLayout({
                         className="flex items-center gap-2"
                       >
                         <Settings />
-                        Account Settings
+                        {t("nav.accountSettings")}
                       </Link>
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => signOut()}>
                     <LogOut />
-                    Sign out
+                    {t("nav.signOut")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

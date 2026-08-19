@@ -1,33 +1,72 @@
 "use client";
 
 import Link from "next/link";
+import { motion, useReducedMotion } from "framer-motion";
+import { useTranslations } from "next-intl";
+import SquiggleUnderline from "../ui/squiggle-underline";
+
+const EASE = [0.22, 1, 0.36, 1] as const;
 
 export default function CTASection() {
-  return (
-    <section className="w-full bg-white py-24 border-t border-gray-100 relative z-50 overflow-hidden">
-      {/* Light backdrop glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-lime-300/10 to-transparent blur-3xl pointer-events-none" />
+  const t = useTranslations("portal");
+  const reduce = useReducedMotion();
 
-      <div className="max-w-4xl mx-auto px-6 text-center flex flex-col items-center gap-8 relative z-10">
-        <h2 className="text-4xl md:text-6xl font-extrabold text-slate-900 tracking-tight leading-none">
-          Ready to align your <br />
-          <span className="text-lime-600 font-black" style={{
-            textShadow: "4px 4px 0 rgba(163, 230, 53, 0.2), 8px 8px 0 rgba(0, 0, 0, 0.05)"
-          }}>
-            next big project?
+  const hidden = reduce
+    ? { opacity: 1, y: 0, filter: "blur(0px)" }
+    : { opacity: 0, y: 28, filter: "blur(14px)" };
+  const shown = { opacity: 1, y: 0, filter: "blur(0px)" };
+
+  return (
+    <section className="w-full bg-white py-20 sm:py-28 md:py-36 border-t border-neutral-100 relative z-50 overflow-hidden">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[720px] h-[520px] rounded-full bg-lime-200/30 blur-[140px] pointer-events-none" />
+
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center flex flex-col items-center gap-6 sm:gap-8 relative z-10">
+        <motion.h2
+          initial={hidden}
+          whileInView={shown}
+          viewport={{ once: true, amount: 0.4 }}
+          transition={{ duration: 0.9, ease: EASE }}
+          className="text-3xl sm:text-4xl md:text-6xl font-semibold text-neutral-900 tracking-[-0.03em] leading-[1.02]"
+        >
+          {t("ctaSection.titlePrefix")} <br />
+          <span className="relative inline-block pb-2">
+            <span className="relative z-10 text-neutral-900">
+              {t("ctaSection.titleHighlight")}
+            </span>
+            <SquiggleUnderline
+              variant="arrow"
+              className="text-lime-500"
+              strokeWidth={3.5}
+              delay={0.4}
+              duration={1.2}
+            />
           </span>
-        </h2>
-        <p className="text-base md:text-lg text-gray-500 max-w-xl mx-auto leading-relaxed">
-          Create secure escrow contracts, define clean milestones, and release payments dynamically. Join Veritas today.
-        </p>
-        <div className="flex gap-4 mt-2">
+        </motion.h2>
+
+        <motion.p
+          initial={hidden}
+          whileInView={shown}
+          viewport={{ once: true, amount: 0.4 }}
+          transition={{ duration: 0.9, ease: EASE, delay: 0.12 }}
+          className="text-sm sm:text-base md:text-lg text-neutral-500 max-w-xl mx-auto leading-relaxed"
+        >
+          {t("ctaSection.description")}
+        </motion.p>
+
+        <motion.div
+          initial={hidden}
+          whileInView={shown}
+          viewport={{ once: true, amount: 0.4 }}
+          transition={{ duration: 0.9, ease: EASE, delay: 0.22 }}
+          className="flex gap-4 mt-1 sm:mt-2"
+        >
           <Link
             href="/signup"
-            className="bg-black hover:bg-gray-800 text-white px-8 py-4 rounded-full font-bold transition-all shadow-xl shadow-black/15 text-sm"
+            className="bg-neutral-900 hover:bg-neutral-800 text-white px-6 sm:px-7 py-3 sm:py-3.5 rounded-full font-medium text-sm transition-all shadow-[0_18px_36px_-18px_rgba(15,23,42,0.5)] active:scale-[0.98]"
           >
-            Create Your Portal
+            {t("ctaSection.createPortal")}
           </Link>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

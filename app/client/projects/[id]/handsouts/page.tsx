@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/empty";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ExternalLink, FileImage, FileText, PackageOpen } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 type Handsout = {
   id: string;
@@ -31,10 +32,13 @@ function toArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : [];
 }
 
-function formatShortDate(value: string | Date | null | undefined) {
-  if (!value) return "Recently added";
+function formatShortDate(
+  value: string | Date | null | undefined,
+  emptyLabel: string,
+) {
+  if (!value) return emptyLabel;
   const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return "Recently added";
+  if (Number.isNaN(date.getTime())) return emptyLabel;
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
@@ -43,6 +47,7 @@ export default async function ClientHandsoutsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = await getTranslations("client");
   const { id } = await params;
   const result = await getProject(id);
 
@@ -56,22 +61,22 @@ export default async function ClientHandsoutsPage({
   return (
     <div className="space-y-6 p-6 lg:p-8">
       <div>
-        <h2 className="text-xl font-bold tracking-tight">Deliverables</h2>
+        <h2 className="text-xl font-bold tracking-tight">{t("handsouts.title")}</h2>
         <p className="text-sm text-muted-foreground">
-          Files and assets shared for this project
+          {t("handsouts.subtitle")}
         </p>
       </div>
 
       <Tabs value="handsouts" className="w-full">
         <TabsList className="w-full justify-start">
           <TabsTrigger value="overview" asChild>
-            <Link href={`/client/projects/${id}`}>Overview</Link>
+            <Link href={`/client/projects/${id}`}>{t("projectTabs.overview")}</Link>
           </TabsTrigger>
           <TabsTrigger value="timeline" asChild>
-            <Link href={`/client/projects/${id}/timeline`}>Timeline</Link>
+            <Link href={`/client/projects/${id}/timeline`}>{t("projectTabs.timeline")}</Link>
           </TabsTrigger>
           <TabsTrigger value="handsouts" asChild>
-            <Link href={`/client/projects/${id}/handsouts`}>Handsouts</Link>
+            <Link href={`/client/projects/${id}/handsouts`}>{t("projectTabs.handsouts")}</Link>
           </TabsTrigger>
         </TabsList>
       </Tabs>
@@ -82,10 +87,9 @@ export default async function ClientHandsoutsPage({
             <EmptyMedia variant="icon">
               <PackageOpen className="h-4 w-4" />
             </EmptyMedia>
-            <EmptyTitle>No deliverables yet</EmptyTitle>
+            <EmptyTitle>{t("handsouts.emptyTitle")}</EmptyTitle>
             <EmptyDescription>
-              As soon as the backend attaches handsouts to this project,
-              they&apos;ll show up here as downloadable cards.
+              {t("handsouts.emptyDesc")}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -104,12 +108,11 @@ export default async function ClientHandsoutsPage({
                 <CardContent className="space-y-2 p-4">
                   <p className="text-sm font-semibold">{handsout.title}</p>
                   <p className="text-xs text-muted-foreground">
-                    {handsout.description ??
-                      "Project delivery asset available for review."}
+                    {handsout.description ?? t("handsouts.descFallback")}
                   </p>
                   <div className="flex items-center justify-between pt-1">
                     <span className="text-xs text-muted-foreground">
-                      {formatShortDate(handsout.created_at)}
+                      {formatShortDate(handsout.created_at, t("handsouts.recentlyAdded"))}
                     </span>
                     {handsout.content_url ? (
                       <Button
@@ -124,7 +127,7 @@ export default async function ClientHandsoutsPage({
                           rel="noopener noreferrer"
                         >
                           <ExternalLink className="mr-1 h-3 w-3" />
-                          Open
+                          {t("handsouts.open")}
                         </a>
                       </Button>
                     ) : null}

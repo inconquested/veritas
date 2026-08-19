@@ -1,109 +1,221 @@
 "use client";
 
-import { ExpandableScreen, ExpandableScreenTrigger, ExpandableScreenContent } from "@/components/ui/expandable-screen";
-import { useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
-import { Users, Briefcase } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
+import { useTranslations } from "next-intl";
+import {
+  ArrowRight,
+  Briefcase,
+  Check,
+  Loader2,
+  ShieldCheck,
+  Sparkles,
+  Users,
+} from "lucide-react";
 import { updateUserRole } from "@/actions/onboarding";
+import { TIMEOUT_ERROR_KEY } from "@/lib/action-timeout";
+import { cn } from "@/lib/utils";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
+type Role = "client" | "freelancer";
+
+const ROLES: {
+  role: Role;
+  icon: typeof Users;
+  destination: string;
+  benefitKeys: [string, string, string];
+}[] = [
+  {
+    role: "client",
+    icon: Users,
+    destination: "/client/homepage",
+    benefitKeys: ["clientBenefit1", "clientBenefit2", "clientBenefit3"],
+  },
+  {
+    role: "freelancer",
+    icon: Briefcase,
+    destination: "/freelancer/dashboard",
+    benefitKeys: [
+      "freelancerBenefit1",
+      "freelancerBenefit2",
+      "freelancerBenefit3",
+    ],
+  },
+];
 
 export default function OnboardingPage() {
+  const t = useTranslations("onboarding");
   const { user } = useUser();
   const router = useRouter();
-  const [selectedRole, setSelectedRole] = useState<"client" | "freelancer" | null>(null);
+  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorKey, setErrorKey] = useState<string | null>(null);
 
-  const handleRoleSelect = async (role: "client" | "freelancer") => {
-    setSelectedRole(role);
-    try{
-      await updateUserRole(role);
+  const handleContinue = async () => {
+    if (!selectedRole || submitting) return;
 
-      await user?.reload()
-      role === "client" ? router.push("/client/dashboard") : router.push("/freelancer/dashboard");
-    } catch{
-      console.error("Error")
+    setSubmitting(true);
+    setErrorKey(null);
+
+    const result = await updateUserRole(selectedRole);
+
+    if (!result.success) {
+      setErrorKey(result.errorKey);
+      setSubmitting(false);
+      return;
     }
+
+    // Refresh Clerk's cached user so the new role is visible before we route.
+    await user?.reload();
+    const destination =
+      ROLES.find((option) => option.role === selectedRole)?.destination ?? "/";
+    router.push(destination);
   };
 
+  const errorMessage = errorKey
+    ? errorKey === TIMEOUT_ERROR_KEY
+      ? t("timeoutMessage")
+      : t("errorMessage")
+    : null;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-lime-50 via-white to-blue-50 flex items-center justify-center p-6">
-      <div className="max-w-4xl w-full space-y-8">
-        <div className="text-center space-y-3">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900">
-            Welcome to <span className="text-lime-600">Veritas</span>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-6">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_60%_at_50%_0%,var(--primary)/12%,transparent_70%)]"
+      />
+
+      <div className="relative w-full max-w-4xl space-y-10">
+        <div className="space-y-4 text-center">
+          <Badge
+            variant="outline"
+            className="gap-1.5 rounded-full border-primary/30 bg-primary/5 px-3 py-1 text-primary"
+          >
+            <Sparkles className="size-3.5" />
+            {t("badge")}
+          </Badge>
+          <h1 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl">
+            {t("welcome")} <span className="text-primary">Veritas</span>
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Choose your role to get started
+          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+            {t("subtitle")}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <ExpandableScreen layoutId="client-card">
-            <ExpandableScreenTrigger>
-              <div className="bg-white border-2 border-gray-200 rounded-2xl p-8 hover:border-lime-400 transition-all cursor-pointer group">
-                <div className="w-16 h-16 bg-lime-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-lime-200 transition-colors">
-                  <Users className="w-8 h-8 text-lime-700" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">I'm a Client</h2>
-                <p className="text-gray-600">Hire freelancers and manage projects with secure escrow payments</p>
-              </div>
-            </ExpandableScreenTrigger>
-
-            <ExpandableScreenContent className="bg-gradient-to-br from-lime-500 to-lime-600">
-              <div className="flex flex-col items-center justify-center h-full text-white p-12 text-center space-y-6">
-                <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <Users className="w-12 h-12" />
-                </div>
-                <div className="space-y-4">
-                  <h2 className="text-3xl md:text-4xl font-bold">Client Dashboard</h2>
-                  <ul className="space-y-3 text-lg text-white/90">
-                    <li>• Post projects and hire talent</li>
-                    <li>• Track milestones in real-time</li>
-                    <li>• Secure escrow payments</li>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          {ROLES.map(({ role, icon: Icon, benefitKeys }) => {
+            const isSelected = selectedRole === role;
+            return (
+              <Card
+                key={role}
+                role="button"
+                tabIndex={0}
+                aria-pressed={isSelected}
+                aria-disabled={submitting}
+                onClick={() => {
+                  if (submitting) return;
+                  setSelectedRole(role);
+                  setErrorKey(null);
+                }}
+                onKeyDown={(event) => {
+                  if (submitting) return;
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setSelectedRole(role);
+                    setErrorKey(null);
+                  }
+                }}
+                className={cn(
+                  "cursor-pointer border shadow-sm transition-all outline-none",
+                  "hover:border-primary/50 hover:shadow-md",
+                  "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                  isSelected
+                    ? "border-primary bg-primary/5 ring-2 ring-primary/40"
+                    : "border-border",
+                  submitting && !isSelected && "opacity-60",
+                )}
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex size-14 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Icon className="size-7" />
+                    </div>
+                    <span
+                      className={cn(
+                        "flex size-6 items-center justify-center rounded-full border transition-colors",
+                        isSelected
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border text-transparent",
+                      )}
+                    >
+                      <Check className="size-4" />
+                    </span>
+                  </div>
+                  <CardTitle className="mt-4 text-2xl">
+                    {t(`${role}Title`)}
+                  </CardTitle>
+                  <CardDescription className="text-base">
+                    {t(`${role}Description`)}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2.5">
+                    {benefitKeys.map((key) => (
+                      <li
+                        key={key}
+                        className="flex items-center gap-2.5 text-sm text-muted-foreground"
+                      >
+                        <Check className="size-4 shrink-0 text-primary" />
+                        {t(key)}
+                      </li>
+                    ))}
                   </ul>
-                </div>
-                <button
-                  onClick={() => handleRoleSelect("client")}
-                  className="mt-8 px-8 py-4 bg-white text-lime-600 rounded-xl font-bold text-lg hover:bg-gray-50 transition-colors"
-                >
-                  Continue as Client
-                </button>
-              </div>
-            </ExpandableScreenContent>
-          </ExpandableScreen>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
 
-          <ExpandableScreen layoutId="freelancer-card">
-            <ExpandableScreenTrigger>
-              <div className="bg-white border-2 border-gray-200 rounded-2xl p-8 hover:border-blue-400 transition-all cursor-pointer group">
-                <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-200 transition-colors">
-                  <Briefcase className="w-8 h-8 text-blue-700" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">I'm a Freelancer</h2>
-                <p className="text-gray-600">Find projects and get paid securely with milestone-based payments</p>
-              </div>
-            </ExpandableScreenTrigger>
+        {errorMessage ? (
+          <Alert variant="destructive">
+            <ShieldCheck className="size-4" />
+            <AlertTitle>{t("errorTitle")}</AlertTitle>
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        ) : null}
 
-            <ExpandableScreenContent className="bg-gradient-to-br from-blue-500 to-blue-600">
-              <div className="flex flex-col items-center justify-center h-full text-white p-12 text-center space-y-6">
-                <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <Briefcase className="w-12 h-12" />
-                </div>
-                <div className="space-y-4">
-                  <h2 className="text-3xl md:text-4xl font-bold">Freelancer Dashboard</h2>
-                  <ul className="space-y-3 text-lg text-white/90">
-                    <li>• Browse and apply to projects</li>
-                    <li>• Submit milestone deliverables</li>
-                    <li>• Receive protected payments</li>
-                  </ul>
-                </div>
-                <button
-                  onClick={() => handleRoleSelect("freelancer")}
-                  className="mt-8 px-8 py-4 bg-white text-blue-600 rounded-xl font-bold text-lg hover:bg-gray-50 transition-colors"
-                >
-                  Continue as Freelancer
-                </button>
-              </div>
-            </ExpandableScreenContent>
-          </ExpandableScreen>
+        <div className="flex flex-col items-center gap-3">
+          <Button
+            size="lg"
+            className="min-w-64 gap-2"
+            disabled={!selectedRole || submitting}
+            onClick={handleContinue}
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                {t("settingUp")}
+              </>
+            ) : (
+              <>
+                {selectedRole
+                  ? t(`continueAs.${selectedRole}`)
+                  : t("choosePrompt")}
+                {selectedRole ? <ArrowRight className="size-4" /> : null}
+              </>
+            )}
+          </Button>
+          <p className="text-sm text-muted-foreground">{t("hint")}</p>
         </div>
       </div>
     </div>

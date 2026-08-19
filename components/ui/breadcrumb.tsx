@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useTranslations } from "next-intl"
 import { Slot } from "radix-ui"
 
 import { cn } from "@/lib/utils"
@@ -93,6 +94,7 @@ function BreadcrumbEllipsis({
   className,
   ...props
 }: React.ComponentProps<"span">) {
+  const t = useTranslations("common")
   return (
     <span
       data-slot="breadcrumb-ellipsis"
@@ -106,7 +108,7 @@ function BreadcrumbEllipsis({
     >
       <MoreHorizontalIcon
       />
-      <span className="sr-only">More</span>
+      <span className="sr-only">{t("more")}</span>
     </span>
   )
 }

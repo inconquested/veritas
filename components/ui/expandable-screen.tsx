@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react"
 import { X } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { AnimatePresence, motion } from "motion/react"
 
 // Context
@@ -154,6 +155,7 @@ export function ExpandableScreenContent({
 }: ExpandableScreenContentProps) {
   const { isExpanded, collapse, layoutId, contentRadius, animationDuration } =
     useExpandableScreen()
+  const t = useTranslations("common")
 
   return (
     <AnimatePresence initial={false}>
@@ -185,7 +187,7 @@ export function ExpandableScreenContent({
                   closeButtonClassName ||
                   "text-primary-foreground bg-transparent hover:bg-primary-foreground/10"
                 }`}
-                aria-label="Close"
+                aria-label={t("close")}
               >
                 <X className="h-5 w-5" />
               </motion.button>

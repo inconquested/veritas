@@ -2,6 +2,7 @@ import { getProject } from "@/actions/projects";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ExternalLink, FileImage, FileText, PackageOpen } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 
 type Handsout = {
@@ -20,11 +21,11 @@ function toArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : [];
 }
 
-function date(value: string | Date | null | undefined) {
-  if (!value) return "Recently added";
+function date(value: string | Date | null | undefined, fallback: string) {
+  if (!value) return fallback;
   const parsed = value instanceof Date ? value : new Date(value);
   return Number.isNaN(parsed.getTime())
-    ? "Recently added"
+    ? fallback
     : parsed.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
@@ -34,6 +35,7 @@ export default async function HandsoutsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const t = await getTranslations("freelancer");
   const result = await getProject(id);
 
   if (!result.success) notFound();
@@ -44,9 +46,11 @@ export default async function HandsoutsPage({
   return (
     <div className="space-y-6 p-6 lg:p-8">
       <div>
-        <h2 className="text-xl font-bold tracking-tight">Handsouts</h2>
+        <h2 className="text-xl font-bold tracking-tight">
+          {t("handsouts.title")}
+        </h2>
         <p className="text-sm text-muted-foreground">
-          Deliverables and assets shared with the client
+          {t("handsouts.subtitle")}
         </p>
       </div>
 
@@ -54,8 +58,7 @@ export default async function HandsoutsPage({
         <Card className="border border-dashed border-border/70 bg-muted/20 shadow-none">
           <CardContent className="flex items-center gap-3 p-6 text-sm text-muted-foreground">
             <PackageOpen className="h-5 w-5" aria-hidden="true" />
-            No handsouts yet. Delivered files will appear here after they are
-            attached to the project.
+            {t("handsouts.empty")}
           </CardContent>
         </Card>
       ) : (
@@ -80,13 +83,17 @@ export default async function HandsoutsPage({
                         {handsout.title}
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {handsout.description ?? "Project delivery asset."}
+                        {handsout.description ??
+                          t("handsouts.asset-fallback")}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between gap-3 pt-1">
                     <span className="text-xs text-muted-foreground">
-                      {date(handsout.createdAt ?? handsout.created_at)}
+                      {date(
+                        handsout.createdAt ?? handsout.created_at,
+                        t("handsouts.recently-added"),
+                      )}
                     </span>
                     {handsout.content_url ? (
                       <Button
@@ -104,7 +111,7 @@ export default async function HandsoutsPage({
                             className="mr-1 h-3 w-3"
                             aria-hidden="true"
                           />
-                          Open
+                          {t("handsouts.open")}
                         </a>
                       </Button>
                     ) : null}

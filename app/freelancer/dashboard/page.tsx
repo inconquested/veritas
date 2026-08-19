@@ -3,6 +3,7 @@ import { listProjects } from "@/actions/projects";
 import { Card, CardContent } from "@/components/ui/card";
 import { getErrorStateMessage } from "@/lib/utils";
 import { AlertCircle, DollarSign, FileText, FolderOpen, TrendingUp } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 type Project = { status?: string | null };
 type Invoice = {
@@ -24,6 +25,7 @@ function money(value: number, currency = "USD") {
 }
 
 export default async function DashboardPage() {
+  const t = await getTranslations("dashboard");
   const [projectResult, invoiceResult] = await Promise.all([
     listProjects({ limit: 100, page: 1, sort: "desc", sortBy: "updated_at" }),
     listInvoices(),
@@ -39,7 +41,7 @@ export default async function DashboardPage() {
         <CardContent className="flex items-start gap-3 p-5">
           <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
           <div>
-            <h1 className="text-lg font-semibold">Dashboard unavailable</h1>
+            <h1 className="text-lg font-semibold">{t("unavailable")}</h1>
             <p className="mt-1 text-sm text-muted-foreground">{errorMessage}</p>
           </div>
         </CardContent>
@@ -66,44 +68,50 @@ export default async function DashboardPage() {
 
   const kpis = [
     {
-      label: "Total revenue",
+      label: t("totalRevenue"),
       value: money(totalRevenue, currency),
       change: paid.length
-        ? `${paid.length} paid invoice${paid.length === 1 ? "" : "s"}`
-        : "No paid invoices yet",
+        ? paid.length === 1
+          ? t("paidInvoice", { count: paid.length })
+          : t("paidInvoices", { count: paid.length })
+        : t("noPaidInvoices"),
       icon: DollarSign,
       color: "text-emerald-600",
       bg: "bg-emerald-500/10",
     },
     {
-      label: "Active projects",
+      label: t("activeProjects"),
       value: String(activeProjects),
       change: projects.length
-        ? `${projects.length} total project${projects.length === 1 ? "" : "s"}`
-        : "Create your first project",
+        ? projects.length === 1
+          ? t("totalProject", { count: projects.length })
+          : t("totalProjects", { count: projects.length })
+        : t("createFirstProject"),
       icon: FolderOpen,
       color: "text-blue-600",
       bg: "bg-blue-500/10",
     },
     {
-      label: "Pending invoices",
+      label: t("pendingInvoices"),
       value: String(pending.length),
       change: pending.length
-        ? `${money(
-            pending.reduce((sum, invoice) => sum + amount(invoice.amount), 0),
-            currency,
-          )} outstanding`
-        : "Nothing outstanding",
+        ? t("outstanding", {
+            amount: money(
+              pending.reduce((sum, invoice) => sum + amount(invoice.amount), 0),
+              currency,
+            ),
+          })
+        : t("nothingOutstanding"),
       icon: FileText,
       color: "text-amber-600",
       bg: "bg-amber-500/10",
     },
     {
-      label: "Avg. project value",
+      label: t("avgProjectValue"),
       value: money(avgProjectValue, currency),
       change: activeProjects
-        ? "Based on active projects"
-        : "Waiting for project data",
+        ? t("basedOnActive")
+        : t("waitingForData"),
       icon: TrendingUp,
       color: "text-violet-600",
       bg: "bg-violet-500/10",
@@ -114,16 +122,16 @@ export default async function DashboardPage() {
     return (
       <div className="space-y-4">
         <div className="mb-2">
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
           <p className="text-sm text-muted-foreground">
-            Your live project and billing snapshot.
+            {t("subtitle")}
           </p>
         </div>
         <Card className="border-dashed border-border/70 bg-muted/20 shadow-none">
           <CardContent className="p-6">
-            <h2 className="text-lg font-semibold">No workspace activity yet</h2>
+            <h2 className="text-lg font-semibold">{t("noActivity")}</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Create a project or send an invoice to populate this dashboard.
+              {t("noActivityDesc")}
             </p>
           </CardContent>
         </Card>
@@ -134,9 +142,9 @@ export default async function DashboardPage() {
   return (
     <>
       <div className="mb-2">
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
         <p className="text-sm text-muted-foreground">
-          Your live project and billing snapshot.
+          {t("subtitle")}
         </p>
       </div>
 

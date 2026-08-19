@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { ImagePlus, Link, Link2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -26,10 +27,12 @@ export function ImageUploader({
   onUrlChange,
   fileValue,
   onFileChange,
-  label = "Image",
+  label,
   placeholder = "https://example.com/image.png",
   className,
 }: ImageUploaderProps) {
+  const t = useTranslations("uploader");
+  const labelText = label ?? t("label");
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [tab, setTab] = React.useState<"url" | "file">(
     fileValue ? "file" : "url",
@@ -53,16 +56,16 @@ export function ImageUploader({
     >
       <div className="flex items-center justify-between gap-3">
         <label htmlFor={id} className="text-sm font-medium">
-          {label}
+          {labelText}
         </label>
         <TabsList className="grid w-52 grid-cols-2">
           <TabsTrigger value="url">
             <Link className="pointer-events-none mr-2 h-4 w-4" />
-            URL
+            {t("urlTab")}
           </TabsTrigger>
           <TabsTrigger value="file">
             <Upload className="pointer-events-none mr-2 h-4 w-4" />
-            Upload
+            {t("uploadTab")}
           </TabsTrigger>
         </TabsList>
       </div>
@@ -73,7 +76,7 @@ export function ImageUploader({
             <>
               <Image
                 src={previewUrl}
-                alt="Selected preview"
+                alt={t("previewAlt")}
                 fill
                 unoptimized
                 className="object-cover transition-transform duration-300 ease-out motion-safe:hover:scale-[1.03]"
@@ -85,10 +88,9 @@ export function ImageUploader({
               <div className="rounded-full bg-background/80 p-3 shadow-sm transition-transform duration-300 motion-safe:hover:scale-110">
                 <ImagePlus className="h-5 w-5" />
               </div>
-              <p className="text-sm font-medium">Drop in a cover image</p>
+              <p className="text-sm font-medium">{t("emptyTitle")}</p>
               <p className="px-4 text-center text-xs">
-                Paste a URL or upload a file. We&apos;ll use whichever you
-                provide last.
+                {t("emptyHint")}
               </p>
             </div>
           )}
@@ -116,7 +118,7 @@ export function ImageUploader({
                   variant="outline"
                   size="icon"
                   onClick={() => onUrlChange("")}
-                  aria-label="Clear image URL"
+                  aria-label={t("clearUrl")}
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -143,7 +145,7 @@ export function ImageUploader({
                 className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-background px-4 py-6 text-sm transition-colors hover:border-primary/40 hover:bg-primary/5"
               >
                 <Upload className="h-4 w-4" />
-                {fileValue ? fileValue.name : "Choose an image file"}
+                {fileValue ? fileValue.name : t("chooseFile")}
               </button>
             </>
           </TabsContent>

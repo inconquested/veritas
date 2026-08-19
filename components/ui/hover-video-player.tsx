@@ -33,6 +33,7 @@ import React, {
   useState,
 } from "react"
 import Image from "next/image"
+import { useTranslations } from "next-intl"
 import { Maximize, Minimize, Pause, Play, Volume2, VolumeX } from "lucide-react"
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 
@@ -710,6 +711,7 @@ const HoverVideoPlayerVideo: React.FC<{
     setVideoLoading,
     setVideoPlaying,
   } = useHoverVideoPlayer()
+  const t = useTranslations("common")
   const isVimeoVideo = isVimeoUrl(src)
   const containerRef = useRef<HTMLDivElement>(null)
   const playerRef = useRef<VimeoPlayer | null>(null)
@@ -834,7 +836,7 @@ const HoverVideoPlayerVideo: React.FC<{
       preload={preload}
       playsInline
       crossOrigin="anonymous"
-      aria-label="Video player"
+      aria-label={t("videoPlayer")}
     />
   )
 }
@@ -844,6 +846,7 @@ const HoverVideoPlayerVideo: React.FC<{
  */
 const HoverVideoPlayerThumbnail: React.FC<{ src: string }> = ({ src }) => {
   const { cropTop, cropBottom, isLoading, isPlaying } = useHoverVideoPlayer()
+  const t = useTranslations("common")
   const shouldReduceMotion = useReducedMotion()
   const shouldShowThumbnail = !isPlaying || isLoading
 
@@ -866,7 +869,7 @@ const HoverVideoPlayerThumbnail: React.FC<{ src: string }> = ({ src }) => {
     >
       <Image
         src={src}
-        alt="Video thumbnail"
+        alt={t("videoThumbnail")}
         fill
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         className="object-cover"
@@ -991,6 +994,7 @@ const HoverVideoPlayerLoadingOverlay: React.FC<{
  */
 const HoverVideoPlayerPlayPauseButton: React.FC = () => {
   const { isPlaying, togglePlay } = useHoverVideoPlayer()
+  const t = useTranslations("common")
 
   return (
     <Button
@@ -998,7 +1002,7 @@ const HoverVideoPlayerPlayPauseButton: React.FC = () => {
       variant="ghost"
       onClick={togglePlay}
       className="text-white hover:text-primary-foreground"
-      aria-label={isPlaying ? "Pause video" : "Play video"}
+      aria-label={isPlaying ? t("pauseVideo") : t("playVideo")}
     >
       {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
     </Button>
@@ -1010,6 +1014,7 @@ const HoverVideoPlayerPlayPauseButton: React.FC = () => {
  */
 const HoverVideoPlayerVolumeControl: React.FC = () => {
   const { muted, toggleMute, volume, setVolume } = useHoverVideoPlayer()
+  const t = useTranslations("common")
 
   return (
     <div className="flex items-center space-x-2">
@@ -1018,7 +1023,7 @@ const HoverVideoPlayerVolumeControl: React.FC = () => {
         variant="ghost"
         onClick={toggleMute}
         className="text-white hover:text-primary-foreground"
-        aria-label={muted ? "Unmute" : "Mute"}
+        aria-label={muted ? t("unmute") : t("mute")}
       >
         {muted ? (
           <VolumeX className="h-6 w-6" />
@@ -1033,7 +1038,7 @@ const HoverVideoPlayerVolumeControl: React.FC = () => {
         max={100}
         step={1}
         onValueChange={(value) => setVolume(value[0] / 100)}
-        aria-label="Volume"
+        aria-label={t("volume")}
       />
     </div>
   )
@@ -1044,6 +1049,7 @@ const HoverVideoPlayerVolumeControl: React.FC = () => {
  */
 const HoverVideoPlayerProgressBar: React.FC = () => {
   const { progress, setProgress, videoRef } = useHoverVideoPlayer()
+  const t = useTranslations("common")
 
   return (
     <Slider
@@ -1059,7 +1065,7 @@ const HoverVideoPlayerProgressBar: React.FC = () => {
           setProgress(value[0])
         }
       }}
-      aria-label="Video progress"
+      aria-label={t("videoProgress")}
     />
   )
 }
@@ -1069,6 +1075,7 @@ const HoverVideoPlayerProgressBar: React.FC = () => {
  */
 const HoverVideoPlayerPiPButton: React.FC = () => {
   const { isPiP, togglePiP } = useHoverVideoPlayer()
+  const t = useTranslations("common")
 
   return (
     <Button
@@ -1077,7 +1084,7 @@ const HoverVideoPlayerPiPButton: React.FC = () => {
       onClick={togglePiP}
       className="text-white hover:text-primary-foreground"
       aria-label={
-        isPiP ? "Exit picture in picture" : "Enter picture in picture"
+        isPiP ? t("exitPictureInPicture") : t("enterPictureInPicture")
       }
     >
       {isPiP ? (

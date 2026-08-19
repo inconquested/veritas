@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ export default function CollapsibleNavItem({
   item: NavItem;
   pathname: string;
 }) {
+  const t = useTranslations("nav");
   const isChildActive =
     item.children?.some((c) => pathname === c.href) ?? false;
   const isParentActive = pathname.startsWith(item.href);
@@ -68,7 +70,7 @@ export default function CollapsibleNavItem({
             variant="ghost"
             size="icon"
             className="absolute right-1 top-1.5 flex h-5 w-5 items-center justify-center rounded-md text-sidebar-foreground ring-sidebar-ring outline-hidden transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 group-data-[collapsible=icon]:hidden"
-            aria-label={`Toggle ${item.title}`}
+            aria-label={t("toggle", { title: item.title })}
           >
             <ChevronRight
               className={`size-3.5 transition-transform duration-200 ${open ? "rotate-90" : ""}`}

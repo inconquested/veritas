@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import type { ZodIssue, ZodType } from "zod";
+import { isTimeoutErrorKey } from "@/lib/action-timeout";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -20,7 +21,7 @@ export const handleInputChange = (
   onChange(name, value);
 };
 
-export function translateErrorKey(t: any, key: string) {
+export function translateErrorKey(t: any, key: string): string {
   const id = key.startsWith("errors.") ? key.slice(7) : key;
 
   try {
@@ -77,8 +78,17 @@ export function toJsonSafe<T>(value: T): T {
   ) as T;
 }
 
+// Friendly, i18n-independent copy for a request that timed out. Used as a
+// fallback wherever an action can only surface a raw `errorKey`.
+export const TIMEOUT_MESSAGE =
+  "This is taking longer than expected. Please check your connection and try again.";
+
 export function getErrorStateMessage(errorKey?: string | null) {
   if (!errorKey) return "We couldn't load this data right now.";
+
+  if (isTimeoutErrorKey(errorKey)) {
+    return TIMEOUT_MESSAGE;
+  }
 
   if (errorKey.includes("unauthorized") || errorKey.includes("auth")) {
     return "Please sign in again to view this workspace.";
@@ -93,6 +103,21 @@ export function getErrorStateMessage(errorKey?: string | null) {
   }
 
   return "We couldn't load this data right now.";
+}
+
+/**
+ * Resolve a user-facing message from a failed server-action result. Timeouts
+ * always get the dedicated {@link TIMEOUT_MESSAGE}; everything else falls back
+ * to the result's own message/errorKey, then to `fallback`.
+ */
+export function getActionErrorMessage(
+  result: { message?: string | null; errorKey?: string | null } | null | undefined,
+  fallback: string,
+) {
+  if (result && isTimeoutErrorKey(result.errorKey)) {
+    return TIMEOUT_MESSAGE;
+  }
+  return result?.message ?? result?.errorKey ?? fallback;
 }
 
 export function formatInvoiceDate(date = new Date()) {

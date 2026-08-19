@@ -60,6 +60,14 @@ enum InvoiceStatus {
   REFUNDED
 }
 
+enum EscrowStatus {
+  INITIALIZED
+  FUNDS_HELD
+  DISPUTED
+  RELEASED
+  REFUNDED
+}
+
 model FreelancerProfile {
   id     String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId String @unique @db.Uuid
@@ -151,9 +159,48 @@ model Invoice {
 
   project    Project           @relation(fields: [project_id], references: [id])
   freelancer FreelancerProfile @relation(fields: [freelancerId], references: [id])
+  escrow     Escrow?
 
   @@index([id])
   @@index([project_id])
+}
+
+// Virtual escrow: a provider-agnostic hold/release/dispute/refund ledger for
+// gateways that lack native escrow (Stripe/PayPal/Xendit/Midtrans hosted flows).
+// One row per invoice; every state change is recorded in EscrowEvent (audit log).
+model Escrow {
+  id           String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  invoiceId    String          @unique @db.Uuid
+  provider     String
+  providerTxId String?
+  amount       BigInt
+  currency     InvoiceCurrency
+  status       EscrowStatus    @default(INITIALIZED)
+  createdAt    DateTime        @default(now()) @db.Timestamp(6)
+  updatedAt    DateTime        @default(now()) @updatedAt @db.Timestamp(6)
+
+  invoice Invoice       @relation(fields: [invoiceId], references: [id])
+  events  EscrowEvent[]
+
+  @@index([invoiceId])
+}
+
+// Append-only audit log. idempotencyKey is unique so a replayed request
+// (retry, duplicate webhook) collides instead of double-applying a transition.
+model EscrowEvent {
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  escrowId       String        @db.Uuid
+  idempotencyKey String        @unique
+  action         String
+  actorRole      String
+  fromStatus     EscrowStatus?
+  toStatus       EscrowStatus
+  metadata       Json?
+  createdAt      DateTime      @default(now()) @db.Timestamp(6)
+
+  escrow Escrow @relation(fields: [escrowId], references: [id])
+
+  @@index([escrowId])
 }
 
 model Handsout {

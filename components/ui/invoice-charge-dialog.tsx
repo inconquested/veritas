@@ -2,8 +2,11 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { chargeInvoice } from "@/actions/invoices";
+import { isTimeoutErrorKey } from "@/lib/action-timeout";
+import { TIMEOUT_MESSAGE } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,15 +46,11 @@ type ChargeDialogProps = {
 
 type ActionState = {
   formError?: string | null;
-  fieldErrors?: Record<string, string[]>;
+  fieldErrors?: Record<string, string>;
 };
 
-const providerOptions = [
-  { value: "STRIPE", label: "Stripe Checkout" },
-  { value: "MIDTRANS", label: "Midtrans Snap" },
-  { value: "XENDIT", label: "Xendit Invoice" },
-  { value: "PAYPAL", label: "PayPal" },
-] as const;
+// Provider CODE values used for logic; display labels resolved via t(`provider.${value}`).
+const providerOptions = ["STRIPE", "MIDTRANS", "XENDIT", "PAYPAL"] as const;
 
 export default function ClientChargeDialog({
   invoiceId,
@@ -60,6 +59,7 @@ export default function ClientChargeDialog({
   method,
   disabled = false,
 }: ChargeDialogProps) {
+  const t = useTranslations("invoiceCharge");
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -72,44 +72,48 @@ export default function ClientChargeDialog({
     setLoading(true);
     setState({});
 
-    const payload: Record<string, unknown> = {
-      payment_method: provider,
-    };
+    try {
+      const payload: Record<string, unknown> = {
+        payment_method: provider,
+      };
 
-    if (destination.trim()) {
-      payload.destination_account_id = destination.trim();
-    }
+      if (destination.trim()) {
+        payload.destination_account_id = destination.trim();
+      }
 
-    const result = await chargeInvoice(payload, invoiceId);
-    const resultAny = result as any;
+      const result = await chargeInvoice(payload, invoiceId);
+      const resultAny = result as any;
 
-    if (!resultAny?.success) {
-      const fieldErrors = (resultAny?.errors ?? {}) as Record<string, string[]>;
-      const formError =
-        resultAny?.data?.errorMessage ??
-        resultAny?.errorKey ??
-        "Unable to start payment flow.";
-      setState({ formError, fieldErrors });
+      if (!resultAny?.success) {
+        const fieldErrors = (resultAny?.errors ?? {}) as Record<string, string>;
+        const formError = isTimeoutErrorKey(resultAny?.errorKey)
+          ? TIMEOUT_MESSAGE
+          : resultAny?.data?.errorMessage ??
+            resultAny?.errorKey ??
+            t("startFailed");
+        setState({ formError, fieldErrors });
+        return;
+      }
+
+      const payment = (resultAny.data ?? {}) as Record<
+        string,
+        string | undefined
+      >;
+      const redirectUrl = payment.checkoutUrl ?? payment.redirectUrl;
+
+      toast.success(t("paymentCreated"));
+      setOpen(false);
+      router.refresh();
+
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+        return;
+      }
+    } catch {
+      setState({ formError: t("startFailed") });
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const payment = (resultAny.data ?? {}) as Record<
-      string,
-      string | undefined
-    >;
-    const redirectUrl = payment.checkoutUrl ?? payment.redirectUrl;
-
-    toast.success("Payment flow created");
-    setOpen(false);
-    router.refresh();
-
-    if (redirectUrl) {
-      window.location.href = redirectUrl;
-      return;
-    }
-
-    setLoading(false);
   }
 
   return (
@@ -117,66 +121,63 @@ export default function ClientChargeDialog({
       <DialogTrigger asChild>
         <Button disabled={disabled} size="lg" className="gap-2">
           <Sparkles className="h-4 w-4" />
-          Pay invoice
+          {t("payInvoice")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Choose a payment route</DialogTitle>
+          <DialogTitle>{t("dialogTitle")}</DialogTitle>
           <DialogDescription>
-            We&apos;ll launch the best checkout experience supported by the
-            backend for this invoice: {amount} {currency}.
+            {t("dialogDescription", { amount, currency })}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="payment_method">Payment provider</FieldLabel>
+              <FieldLabel htmlFor="payment_method">{t("providerLabel")}</FieldLabel>
               <FieldContent>
                 <Select value={provider} onValueChange={setProvider}>
                   <SelectTrigger id="payment_method">
-                    <SelectValue placeholder="Select a provider" />
+                    <SelectValue placeholder={t("providerPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     {providerOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                      <SelectItem key={option} value={option}>
+                        {t(`provider.${option}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <FieldDescription>
-                  Stripe works best for cards, while Xendit and Midtrans fit
-                  localized hosted-payment flows.
+                  {t("providerDescription")}
                 </FieldDescription>
                 <FieldError
-                  errors={state.fieldErrors?.payment_method?.map((message) => ({
-                    message,
-                  }))}
+                  errors={state.fieldErrors?.payment_method
+                    ? [{ message: state.fieldErrors.payment_method }]
+                    : undefined}
                 />
               </FieldContent>
             </Field>
 
             <Field>
               <FieldLabel htmlFor="destination_account_id">
-                Destination account
+                {t("destinationLabel")}
               </FieldLabel>
               <FieldContent>
                 <Input
                   id="destination_account_id"
                   value={destination}
                   onChange={(event) => setDestination(event.target.value)}
-                  placeholder="acct_freelancer_123"
+                  placeholder={t("destinationPlaceholder")}
                 />
                 <FieldDescription>
-                  Optional. Pass through a connected account or payout
-                  destination when your backend expects it.
+                  {t("destinationDescription")}
                 </FieldDescription>
                 <FieldError
-                  errors={state.fieldErrors?.destination_account_id?.map(
-                    (message) => ({ message }),
-                  )}
+                  errors={state.fieldErrors?.destination_account_id
+                    ? [{ message: state.fieldErrors.destination_account_id }]
+                    : undefined}
                 />
               </FieldContent>
             </Field>
@@ -184,7 +185,7 @@ export default function ClientChargeDialog({
 
           {state.formError ? (
             <Alert variant="destructive">
-              <AlertTitle>Payment couldn&apos;t be started</AlertTitle>
+              <AlertTitle>{t("errorTitle")}</AlertTitle>
               <AlertDescription>{state.formError}</AlertDescription>
             </Alert>
           ) : null}
@@ -196,10 +197,10 @@ export default function ClientChargeDialog({
               onClick={() => setOpen(false)}
               disabled={loading}
             >
-              Cancel
+              {t("cancel")}
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Preparing checkout…" : "Continue"}
+              {loading ? t("preparing") : t("continue")}
             </Button>
           </DialogFooter>
         </form>

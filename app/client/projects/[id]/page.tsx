@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarDays, FolderOpen } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 type Milestone = {
   id: string;
@@ -50,11 +51,12 @@ function isDone(milestone: Milestone) {
 
 function formatDate(
   value: string | Date | null | undefined,
+  emptyLabel: string,
   options?: Intl.DateTimeFormatOptions,
 ) {
-  if (!value) return "Not scheduled";
+  if (!value) return emptyLabel;
   const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return "Not scheduled";
+  if (Number.isNaN(date.getTime())) return emptyLabel;
   return date.toLocaleDateString(
     "en-US",
     options ?? { month: "long", day: "numeric", year: "numeric" },
@@ -62,13 +64,19 @@ function formatDate(
 }
 
 const tabs = [
-  { label: "Overview", href: (id: string) => `/client/projects/${id}` },
   {
-    label: "Timeline",
+    value: "overview",
+    labelKey: "projectTabs.overview",
+    href: (id: string) => `/client/projects/${id}`,
+  },
+  {
+    value: "timeline",
+    labelKey: "projectTabs.timeline",
     href: (id: string) => `/client/projects/${id}/timeline`,
   },
   {
-    label: "Handsouts",
+    value: "handsouts",
+    labelKey: "projectTabs.handsouts",
     href: (id: string) => `/client/projects/${id}/handsouts`,
   },
 ];
@@ -78,6 +86,7 @@ export default async function ClientProjectDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = await getTranslations("client");
   const { id } = await params;
   const result = await getProject(id);
 
@@ -101,13 +110,12 @@ export default async function ClientProjectDetailPage({
             variant="outline"
             className={`text-xs ${statusColors[project.status] ?? "bg-muted text-muted-foreground border-border"}`}
           >
-            {project.status}
+            {t(`projectStatus.${project.status}`)}
           </Badge>
         ) : null}
         <h1 className="text-2xl font-bold tracking-tight">{project.title}</h1>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          {project.description ??
-            "This workspace tracks delivery progress, assets and billing checkpoints directly from the backend."}
+          {project.description ?? t("projectDetail.descFallback")}
         </p>
       </div>
 
@@ -115,10 +123,13 @@ export default async function ClientProjectDetailPage({
         <Card className="border border-border/60 shadow-sm">
           <CardContent className="p-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Due date
+              {t("projectDetail.dueDate")}
             </p>
             <p className="mt-1 text-sm font-semibold">
-              {formatDate(project.due_date ?? milestones.at(-1)?.due_date)}
+              {formatDate(
+                project.due_date ?? milestones.at(-1)?.due_date,
+                t("projectDetail.notScheduled"),
+              )}
             </p>
           </CardContent>
         </Card>
@@ -127,10 +138,13 @@ export default async function ClientProjectDetailPage({
           <CardContent className="space-y-2 p-4">
             <div className="flex items-center justify-between">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Progress
+                {t("projectDetail.progress")}
               </p>
               <p className="text-xs font-semibold text-foreground">
-                {doneCount}/{milestones.length || 0} milestones
+                {t("projectDetail.milestonesCount", {
+                  done: doneCount,
+                  total: milestones.length || 0,
+                })}
               </p>
             </div>
             <Progress value={progress} className="h-2" />
@@ -142,11 +156,11 @@ export default async function ClientProjectDetailPage({
             <div className="flex items-center gap-1.5">
               <FolderOpen className="h-4 w-4 text-muted-foreground" />
               <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Handsouts
+                {t("projectTabs.handsouts")}
               </p>
             </div>
             <p className="mt-1 text-sm font-semibold">
-              {handsouts.length} available
+              {t("projectDetail.available", { count: handsouts.length })}
             </p>
           </CardContent>
         </Card>
@@ -156,11 +170,11 @@ export default async function ClientProjectDetailPage({
         <TabsList className="w-full justify-start">
           {tabs.map((tab) => (
             <TabsTrigger
-              key={tab.label}
-              value={tab.label.toLowerCase()}
+              key={tab.value}
+              value={tab.value}
               asChild
             >
-              <Link href={tab.href(id)}>{tab.label}</Link>
+              <Link href={tab.href(id)}>{t(tab.labelKey)}</Link>
             </TabsTrigger>
           ))}
         </TabsList>
@@ -170,8 +184,7 @@ export default async function ClientProjectDetailPage({
         {milestones.length === 0 ? (
           <Card className="border border-dashed border-border/70 bg-muted/20 shadow-none">
             <CardContent className="p-6 text-sm text-muted-foreground">
-              No milestones are attached yet. As soon as the backend sends a
-              schedule, it will appear here.
+              {t("projectDetail.noMilestones")}
             </CardContent>
           </Card>
         ) : (
@@ -196,7 +209,7 @@ export default async function ClientProjectDetailPage({
                 </div>
                 <div className="ml-auto flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
                   <CalendarDays className="h-3 w-3" />
-                  {formatDate(milestone.due_date, {
+                  {formatDate(milestone.due_date, t("projectDetail.notScheduled"), {
                     month: "short",
                     day: "numeric",
                   })}

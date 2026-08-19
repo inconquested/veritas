@@ -1,6 +1,7 @@
 import { listInvoices } from "@/actions/invoices";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
 type Invoice = {
@@ -31,15 +32,16 @@ function money(value: Invoice["amount"], currency = "USD") {
   }).format(Number(value ?? 0));
 }
 
-function date(value: Invoice["due_date"]) {
-  if (!value) return "No due date";
+function date(value: Invoice["due_date"], noDueDate: string) {
+  if (!value) return noDueDate;
   const parsed = value instanceof Date ? value : new Date(value);
   return Number.isNaN(parsed.getTime())
-    ? "No due date"
+    ? noDueDate
     : parsed.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 export default async function BillingInvoicesSlot() {
+  const t = await getTranslations("freelancer");
   const result = await listInvoices();
 
   return (
@@ -47,17 +49,17 @@ export default async function BillingInvoicesSlot() {
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div>
           <CardTitle className="text-base font-semibold">
-            Recent Invoices
+            {t("billing.recentInvoices")}
           </CardTitle>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Latest billing entries from your workspace
+            {t("billing.subtitle")}
           </p>
         </div>
         <Link
           href="/freelancer/projects"
           className="text-xs text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          View all
+          {t("billing.viewAll")}
         </Link>
       </CardHeader>
       <CardContent>
@@ -66,12 +68,11 @@ export default async function BillingInvoicesSlot() {
             className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm"
             role="alert"
           >
-            Couldn&apos;t load invoices.
+            {t("billing.loadError")}
           </div>
         ) : ((result.invoices as Invoice[] | undefined) ?? []).length === 0 ? (
           <div className="rounded-lg border border-dashed border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
-            No invoices yet. They&apos;ll appear here after you create billing
-            entries for a project.
+            {t("billing.empty")}
           </div>
         ) : (
           <div className="divide-y divide-border/50">
@@ -89,8 +90,8 @@ export default async function BillingInvoicesSlot() {
                     <p className="text-xs text-muted-foreground">
                       {invoice.clientName ||
                         invoice.project?.title ||
-                        "Project"}{" "}
-                      · {date(invoice.due_date ?? invoice.createdAt)}
+                        t("billing.projectFallback")}{" "}
+                      · {date(invoice.due_date ?? invoice.createdAt, t("billing.noDueDate"))}
                     </p>
                   </div>
                   <div className="ml-4 flex shrink-0 items-center gap-2">

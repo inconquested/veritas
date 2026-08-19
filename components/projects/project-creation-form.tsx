@@ -1,6 +1,8 @@
 "use client";
 
-import { useActionState, useMemo, useRef, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   Check,
   ChevronLeft,
@@ -36,9 +38,10 @@ type ActionResult = {
   errorKey?: string;
 };
 
-const steps = ["Project Details", "Milestones", "Review"];
-
 export default function ProjectCreationForm() {
+  const t = useTranslations("project-create");
+  const router = useRouter();
+  const steps = [t("step-details"), t("step-milestones"), t("step-review")];
   const [step, setStep] = useState(0);
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -88,6 +91,12 @@ export default function ProjectCreationForm() {
   );
   const errorEntries = Object.entries(state?.errors ?? {});
 
+  useEffect(() => {
+    if (state?.success) {
+      router.push("/freelancer/projects");
+    }
+  }, [state?.success, router]);
+
   const handleThumbFileChange = (file: File | null) => {
     setThumbFile(file);
 
@@ -122,11 +131,10 @@ export default function ProjectCreationForm() {
     >
       <div>
         <h1 className="text-2xl font-bold tracking-tight">
-          Create New Project
+          {t("heading")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Minimal form, real payload. Cover image can come from a URL or a file
-          upload.
+          {t("subtitle")}
         </p>
       </div>
 
@@ -165,12 +173,12 @@ export default function ProjectCreationForm() {
         {step === 0 ? (
           <>
             <CardHeader>
-              <CardTitle className="text-base">Project Details</CardTitle>
+              <CardTitle className="text-base">{t("step-details")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <FieldGroup>
                 <Field>
-                  <FieldLabel htmlFor="title">Project title</FieldLabel>
+                  <FieldLabel htmlFor="title">{t("title")}</FieldLabel>
                   <FieldContent>
                     <Input
                       id="title"
@@ -180,7 +188,7 @@ export default function ProjectCreationForm() {
                         setTitle(e.target.value);
                         setSlug(slugify(e.target.value));
                       }}
-                      placeholder="Brand Identity System"
+                      placeholder={t("title-placeholder-example")}
                     />
                     <FieldError
                       errors={
@@ -193,18 +201,17 @@ export default function ProjectCreationForm() {
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="slug">Slug</FieldLabel>
+                  <FieldLabel htmlFor="slug">{t("slug-label")}</FieldLabel>
                   <FieldContent>
                     <Input
                       id="slug"
                       name="slug"
                       value={slug}
                       disabled
-                      placeholder="brand-identity-system"
+                      placeholder={t("slug-placeholder-example")}
                     />
                     <FieldDescription>
-                      You don't have to write it. This is automatically
-                      generated.
+                      {t("slug-description")}
                     </FieldDescription>
                     <FieldError
                       errors={
@@ -217,14 +224,14 @@ export default function ProjectCreationForm() {
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="description">Description</FieldLabel>
+                  <FieldLabel htmlFor="description">{t("description")}</FieldLabel>
                   <FieldContent>
                     <Textarea
                       id="description"
                       name="description"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Describe the scope, goals and outcome."
+                      placeholder={t("description-placeholder-example")}
                       rows={4}
                     />
                   </FieldContent>
@@ -246,7 +253,7 @@ export default function ProjectCreationForm() {
                       }}
                     />
                     <ImageUploader
-                      label="Cover image"
+                      label={t("cover-image")}
                       urlValue={thumbUrl}
                       onUrlChange={(value) => {
                         setThumbUrl(value);
@@ -254,7 +261,7 @@ export default function ProjectCreationForm() {
                       }}
                       fileValue={thumbFile}
                       onFileChange={handleThumbFileChange}
-                      placeholder="https://images.example.com/cover.jpg"
+                      placeholder={t("cover-placeholder")}
                     />
                     {thumbFile ? (
                       <input
@@ -273,7 +280,7 @@ export default function ProjectCreationForm() {
         {step === 1 ? (
           <>
             <CardHeader>
-              <CardTitle className="text-base">Milestones</CardTitle>
+              <CardTitle className="text-base">{t("step-milestones")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {milestones.map((milestone, index) => (
@@ -287,7 +294,9 @@ export default function ProjectCreationForm() {
                     onChange={(e) =>
                       setMilestone(index, "title", e.target.value)
                     }
-                    placeholder={`Milestone ${index + 1} title`}
+                    placeholder={t("milestone-title-placeholder", {
+                      number: index + 1,
+                    })}
                   />
                   <Input
                     type="date"
@@ -307,7 +316,7 @@ export default function ProjectCreationForm() {
                       )
                     }
                     disabled={milestones.length === 1}
-                    aria-label={`Remove milestone ${index + 1}`}
+                    aria-label={t("remove-milestone", { number: index + 1 })}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -321,7 +330,7 @@ export default function ProjectCreationForm() {
                 className="w-full gap-2"
               >
                 <Plus className="h-4 w-4" />
-                Add milestone
+                {t("add-milestone")}
               </Button>
             </CardContent>
           </>
@@ -330,31 +339,31 @@ export default function ProjectCreationForm() {
         {step === 2 ? (
           <>
             <CardHeader>
-              <CardTitle className="text-base">Review</CardTitle>
+              <CardTitle className="text-base">{t("step-review")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
                 <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                   <div>
-                    <p className="text-muted-foreground">Title</p>
+                    <p className="text-muted-foreground">{t("review-title")}</p>
                     <p className="font-medium">{title || "—"}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Slug</p>
+                    <p className="text-muted-foreground">{t("slug-label")}</p>
                     <p className="font-medium">{slug || "—"}</p>
                   </div>
                   <div className="sm:col-span-2">
-                    <p className="text-muted-foreground">Description</p>
+                    <p className="text-muted-foreground">{t("description")}</p>
                     <p className="font-medium">{description || "—"}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Cover source</p>
+                    <p className="text-muted-foreground">{t("review-cover")}</p>
                     <p className="font-medium">
-                      {thumbFile ? thumbFile.name : thumbUrl || "None"}
+                      {thumbFile ? thumbFile.name : thumbUrl || t("review-none")}
                     </p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Milestones</p>
+                    <p className="text-muted-foreground">{t("step-milestones")}</p>
                     <p className="font-medium">{reviewMilestones.length}</p>
                   </div>
                 </div>
@@ -371,7 +380,7 @@ export default function ProjectCreationForm() {
                 </ul>
               ) : null}
               {state?.success ? (
-                <p className="text-sm text-primary">Project created.</p>
+                <p className="text-sm text-primary">{t("success")}</p>
               ) : null}
             </CardContent>
           </>
@@ -386,7 +395,7 @@ export default function ProjectCreationForm() {
           disabled={step === 0 || isPending}
         >
           <ChevronLeft className="mr-1 h-4 w-4" />
-          Back
+          {t("back")}
         </Button>
         {step < steps.length - 1 ? (
           <Button
@@ -394,7 +403,7 @@ export default function ProjectCreationForm() {
             onClick={() => setStep((current) => current + 1)}
             disabled={isPending}
           >
-            Next
+            {t("next")}
             <ChevronRight className="ml-1 h-4 w-4" />
           </Button>
         ) : (
@@ -404,7 +413,7 @@ export default function ProjectCreationForm() {
             ) : (
               <Check className="mr-1 h-4 w-4" />
             )}
-            Create Project
+            {t("submit")}
           </Button>
         )}
       </div>

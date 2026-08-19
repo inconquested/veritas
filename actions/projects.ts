@@ -15,6 +15,11 @@ import {
   translateErrorKey,
   validateWithTranslation,
 } from "@/lib/utils";
+import {
+  guardAction,
+  timeoutSignal,
+  TIMEOUT_ERROR_KEY,
+} from "@/lib/action-timeout";
 
 function normalizeProjectPayload(raw: unknown) {
   if (raw instanceof FormData) {
@@ -73,7 +78,10 @@ function toProjectForm(payload: Record<string, unknown>) {
 }
 
 async function apiInit() {
-  return { headers: { cookie: (await cookies()).toString() } };
+  return {
+    headers: { cookie: (await cookies()).toString() },
+    init: { signal: timeoutSignal() },
+  };
 }
 
 async function apiFailure(response: Response, fallback: string, t?: any) {
@@ -95,131 +103,152 @@ async function apiFailure(response: Response, fallback: string, t?: any) {
 }
 
 export async function createProject(raw: unknown) {
-  try {
-    const t = await getTranslations("errors");
-    const payload = normalizeProjectPayload(raw);
+  const t = await getTranslations("errors");
+  const payload = normalizeProjectPayload(raw);
 
-    const valid = validateWithTranslation<CreateProjectInput>(
-      CreateProjectSchema,
-      payload,
-      t,
-    );
+  const valid = validateWithTranslation<CreateProjectInput>(
+    CreateProjectSchema,
+    payload,
+    t,
+  );
 
-    if (!valid.success) {
-      return { success: false, errors: valid.errors };
-    }
-
-    const response = await (client as any).api.v1.projects.$post(
-      hasFiles(valid.data)
-        ? { form: toProjectForm(valid.data as Record<string, unknown>) }
-        : { json: valid.data },
-      await apiInit(),
-    );
-
-    if (!response.ok) {
-      return {
-        success: false,
-        ...(await apiFailure(response, "errors.project.creation_failed", t)),
-      };
-    }
-
-    const resBody = (await response.json()) as { data?: unknown };
-    revalidatePath("/client/projects");
-    revalidatePath("/freelancer/projects");
-    return { success: true, data: resBody.data };
-  } catch (error) {
-    console.error("Create project action failed:", error);
-    const t = await getTranslations("errors");
-    return {
-      success: false,
-      errorKey: translateErrorKey(t, "errors.project.creation_failed"),
-    };
+  if (!valid.success) {
+    return { success: false, errors: valid.errors };
   }
+
+  return guardAction(
+    async () => {
+      const response = await (client as any).api.v1.projects.$post(
+        hasFiles(valid.data)
+          ? { form: toProjectForm(valid.data as Record<string, unknown>) }
+          : { json: valid.data },
+        await apiInit(),
+      );
+
+      if (!response.ok) {
+        return {
+          success: false,
+          ...(await apiFailure(response, "errors.project.creation_failed", t)),
+        };
+      }
+
+      const resBody = (await response.json()) as { data?: unknown };
+      revalidatePath("/client/projects");
+      revalidatePath("/freelancer/projects");
+      return { success: true, data: resBody.data };
+    },
+    ({ timedOut }) => ({
+      success: false,
+      errorKey: translateErrorKey(
+        t,
+        timedOut ? TIMEOUT_ERROR_KEY : "errors.project.creation_failed",
+      ),
+    }),
+  );
 }
 
 export async function updateProject(raw: unknown, projectId: string) {
   const t = await getTranslations("errors");
+  const payload = normalizeProjectPayload(raw);
 
-  try {
-    const payload = normalizeProjectPayload(raw);
-    const valid = validateWithTranslation<UpdateProjectInput>(
-      UpdateProjectSchema,
-      payload,
-      t,
-    );
+  const valid = validateWithTranslation<UpdateProjectInput>(
+    UpdateProjectSchema,
+    payload,
+    t,
+  );
 
-    if (!valid.success) {
-      return { success: false, errors: valid.errors };
-    }
-
-    const response = await (client as any).api.v1.projects[":id"].$put(
-      {
-        param: { id: projectId },
-        ...(hasFiles(valid.data)
-          ? { form: toProjectForm(valid.data as Record<string, unknown>) }
-          : { json: valid.data }),
-      },
-      await apiInit(),
-    );
-
-    if (!response.ok) {
-      return {
-        success: false,
-        ...(await apiFailure(response, "errors.project.update_failed", t)),
-      };
-    }
-
-    const resBody = (await response.json()) as { data?: unknown };
-    revalidatePath("/client/projects");
-    revalidatePath(`/client/projects/${projectId}`);
-    revalidatePath("/freelancer/projects");
-    revalidatePath(`/freelancer/projects/${projectId}`);
-    return { success: true, data: resBody.data };
-  } catch (error) {
-    console.error("Update project action failed:", error);
-    return {
-      success: false,
-      errorKey: translateErrorKey(t, "errors.project.update_failed"),
-    };
+  if (!valid.success) {
+    return { success: false, errors: valid.errors };
   }
+
+  return guardAction(
+    async () => {
+      const response = await (client as any).api.v1.projects[":id"].$put(
+        {
+          param: { id: projectId },
+          ...(hasFiles(valid.data)
+            ? { form: toProjectForm(valid.data as Record<string, unknown>) }
+            : { json: valid.data }),
+        },
+        await apiInit(),
+      );
+
+      if (!response.ok) {
+        return {
+          success: false,
+          ...(await apiFailure(response, "errors.project.update_failed", t)),
+        };
+      }
+
+      const resBody = (await response.json()) as { data?: unknown };
+      revalidatePath("/client/projects");
+      revalidatePath(`/client/projects/${projectId}`);
+      revalidatePath("/freelancer/projects");
+      revalidatePath(`/freelancer/projects/${projectId}`);
+      return { success: true, data: resBody.data };
+    },
+    ({ timedOut }) => ({
+      success: false,
+      errorKey: translateErrorKey(
+        t,
+        timedOut ? TIMEOUT_ERROR_KEY : "errors.project.update_failed",
+      ),
+    }),
+  );
 }
 
 export async function getProject(projectId: string) {
-  const response = await (client as any).api.v1.projects[":id"].$get(
-    { param: { id: projectId } },
-    await apiInit(),
-  );
+  return guardAction(
+    async () => {
+      const response = await (client as any).api.v1.projects[":id"].$get(
+        { param: { id: projectId } },
+        await apiInit(),
+      );
 
-  if (!response.ok) {
-    return {
+      if (!response.ok) {
+        return {
+          success: false,
+          ...(await apiFailure(response, "errors.notExist")),
+        };
+      }
+
+      const resBody = (await response.json()) as { data?: unknown };
+      return { success: true, project: resBody.data };
+    },
+    ({ timedOut }) => ({
       success: false,
-      ...(await apiFailure(response, "errors.notExist")),
-    };
-  }
-
-  const resBody = (await response.json()) as { data?: unknown };
-  return { success: true, project: resBody.data };
+      errorKey: timedOut ? TIMEOUT_ERROR_KEY : "errors.notExist",
+    }),
+  );
 }
 
 export async function deleteProject(projectId: string) {
-  const response = await (client as any).api.v1.projects[":id"].$delete(
-    { param: { id: projectId } },
-    await apiInit(),
-  );
+  return guardAction(
+    async () => {
+      const response = await (client as any).api.v1.projects[":id"].$delete(
+        { param: { id: projectId } },
+        await apiInit(),
+      );
 
-  if (!response.ok) {
-    return {
+      if (!response.ok) {
+        return {
+          success: false,
+          ...(await apiFailure(response, "errors.project.delete_failed")),
+        };
+      }
+
+      const resBody = (await response.json()) as { success?: boolean };
+      revalidatePath("/client/projects");
+      revalidatePath("/freelancer/projects");
+      revalidatePath(`/client/projects/${projectId}`);
+      revalidatePath(`/freelancer/projects/${projectId}`);
+      return { success: resBody.success ?? false };
+    },
+    ({ timedOut }) => ({
       success: false,
-      ...(await apiFailure(response, "errors.project.delete_failed")),
-    };
-  }
-
-  const resBody = (await response.json()) as { success?: boolean };
-  revalidatePath("/client/projects");
-  revalidatePath("/freelancer/projects");
-  revalidatePath(`/client/projects/${projectId}`);
-  revalidatePath(`/freelancer/projects/${projectId}`);
-  return { success: resBody.success ?? true };
+      errorKey: timedOut ? TIMEOUT_ERROR_KEY : "errors.project.delete_failed",
+    }),
+  );
 }
 
 export async function listProjects(query?: {
@@ -229,25 +258,33 @@ export async function listProjects(query?: {
   sort?: "asc" | "desc";
   sortBy?: string;
 }) {
-  try {
-    const response = await (client as any).api.v1.projects.$get(
-      { query: query && Object.keys(query).length ? query : undefined },
-      await apiInit(),
-    );
+  return guardAction(
+    async () => {
+      const response = await (client as any).api.v1.projects.$get(
+        { query: query && Object.keys(query).length ? query : undefined },
+        await apiInit(),
+      );
 
-    if (!response.ok) {
+      if (!response.ok) {
+        return {
+          success: false,
+          ...(await apiFailure(response, "errors.projects.fetch_failed")),
+        };
+      }
+
+      const resBody = (await response.json()) as { data?: unknown };
+      // `errorKey: undefined` keeps the success and failure branches structurally
+      // aligned so callers can read `result.errorKey` without narrowing first.
+      return { success: true, projects: resBody.data, errorKey: undefined };
+    },
+    ({ timedOut, error }) => {
+      if (!timedOut) console.error("Fetch projects failed:", error);
       return {
         success: false,
-        ...(await apiFailure(response, "errors.projects.fetch_failed")),
+        errorKey: timedOut ? TIMEOUT_ERROR_KEY : "errors.projects.network_error",
       };
-    }
-
-    const resBody = (await response.json()) as { data?: unknown };
-    return { success: true, projects: resBody.data };
-  } catch (error) {
-    console.error("Fetch projects failed:", error);
-    return { success: false, errorKey: "errors.projects.network_error" };
-  }
+    },
+  );
 }
 
 export const create = createProject;

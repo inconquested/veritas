@@ -2,6 +2,7 @@ import { getProject } from "@/actions/projects";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle2, Circle, Clock } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 
 type Milestone = {
@@ -23,11 +24,11 @@ function isDone(milestone: Milestone) {
   return Boolean(milestone.done || milestone.completed_at);
 }
 
-function date(value: string | Date | null | undefined) {
-  if (!value) return "TBD";
+function date(value: string | Date | null | undefined, fallback: string) {
+  if (!value) return fallback;
   const parsed = value instanceof Date ? value : new Date(value);
   return Number.isNaN(parsed.getTime())
-    ? "TBD"
+    ? fallback
     : parsed.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
@@ -37,6 +38,7 @@ export default async function MilestonesPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const t = await getTranslations("freelancer");
   const result = await getProject(id);
 
   if (!result.success) notFound();
@@ -52,21 +54,25 @@ export default async function MilestonesPage({
     <div className="space-y-6 p-6 lg:p-8">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight">Milestones</h2>
+          <h2 className="text-xl font-bold tracking-tight">
+            {t("milestones.title")}
+          </h2>
           <p className="text-sm text-muted-foreground">
-            {done} of {milestones.length} completed
+            {t("milestones.progress", {
+              done,
+              total: milestones.length,
+            })}
           </p>
         </div>
         <Badge variant="outline" className="text-xs">
-          {percent}% complete
+          {t("milestones.percent-complete", { percent })}
         </Badge>
       </div>
 
       {milestones.length === 0 ? (
         <Card className="border border-dashed border-border/70 bg-muted/20 shadow-none">
           <CardContent className="p-6 text-sm text-muted-foreground">
-            No milestones yet. Add milestones to this project to build the
-            delivery timeline.
+            {t("milestones.empty")}
           </CardContent>
         </Card>
       ) : (
@@ -112,7 +118,7 @@ export default async function MilestonesPage({
                         </div>
                         <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
                           <Clock className="h-3 w-3" aria-hidden="true" />
-                          {date(milestone.due_date)}
+                          {date(milestone.due_date, t("milestones.tbd"))}
                         </div>
                       </div>
                     </CardContent>

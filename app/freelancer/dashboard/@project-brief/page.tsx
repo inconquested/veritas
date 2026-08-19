@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { CalendarDays } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
 type Project = {
@@ -39,25 +40,26 @@ const progressByStatus: Record<string, number> = {
   CANCELLED: 0,
 };
 
-function name(project: Project) {
+function name(project: Project, fallback: string) {
   const client = project.client;
   return (
     [client?.firstName, client?.lastName].filter(Boolean).join(" ") ||
     client?.instanceName ||
     client?.email ||
-    "Client"
+    fallback
   );
 }
 
-function date(value: string | Date | null | undefined) {
-  if (!value) return "Not scheduled";
+function date(value: string | Date | null | undefined, notScheduled: string) {
+  if (!value) return notScheduled;
   const parsed = value instanceof Date ? value : new Date(value);
   return Number.isNaN(parsed.getTime())
-    ? "Not scheduled"
+    ? notScheduled
     : parsed.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 export default async function ProjectBriefSlot() {
+  const t = await getTranslations("freelancer");
   const result = await listProjects({
     limit: 1,
     page: 1,
@@ -77,10 +79,10 @@ export default async function ProjectBriefSlot() {
     <Card className="border border-border/60 shadow-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold">
-          Latest Project
+          {t("projectBrief.title")}
         </CardTitle>
         <p className="text-xs text-muted-foreground">
-          Most recently updated active project
+          {t("projectBrief.subtitle")}
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -89,11 +91,11 @@ export default async function ProjectBriefSlot() {
             className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm"
             role="alert"
           >
-            Couldn&apos;t load projects.
+            {t("projectBrief.loadError")}
           </div>
         ) : !project ? (
           <div className="rounded-lg border border-dashed border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
-            No projects yet. Create a project to start tracking delivery.
+            {t("projectBrief.empty")}
           </div>
         ) : (
           <>
@@ -103,7 +105,7 @@ export default async function ProjectBriefSlot() {
                   {project.title}
                 </h3>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  {name(project)}
+                  {name(project, t("projectBrief.clientFallback"))}
                 </p>
               </div>
               <Badge
@@ -116,7 +118,7 @@ export default async function ProjectBriefSlot() {
 
             <div>
               <div className="mb-1.5 flex justify-between text-xs text-muted-foreground">
-                <span>Overall progress</span>
+                <span>{t("projectBrief.overallProgress")}</span>
                 <span className="font-medium text-foreground">{progress}%</span>
               </div>
               <Progress value={progress} className="h-2" />
@@ -125,10 +127,10 @@ export default async function ProjectBriefSlot() {
             <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
-                <span>Due {date(due ?? project.updatedAt)}</span>
+                <span>{t("projectBrief.due", { date: date(due ?? project.updatedAt, t("projectBrief.notScheduled")) })}</span>
               </div>
               <span className="text-muted-foreground">
-                {project.milestones?.length ?? 0} milestones
+                {t("projectBrief.milestones", { count: project.milestones?.length ?? 0 })}
               </span>
             </div>
 
@@ -136,7 +138,7 @@ export default async function ProjectBriefSlot() {
               href={`/freelancer/projects/${project.id}`}
               className="block w-full rounded-md border border-border/60 py-2 text-center text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              View project →
+              {t("projectBrief.viewProject")} →
             </Link>
           </>
         )}

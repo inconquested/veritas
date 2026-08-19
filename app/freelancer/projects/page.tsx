@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { listProjects } from "@/actions/projects";
@@ -40,6 +41,7 @@ function buildPageHref(page: number, search?: string) {
 }
 
 export default function ProjectsPage() {
+  const t = useTranslations("freelancer");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -106,15 +108,17 @@ export default function ProjectsPage() {
     <div className="space-y-6 p-6 lg:p-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {t("projects.title")}
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Manage all your client projects
+            {t("projects.subtitle")}
           </p>
         </div>
         <Button asChild>
           <Link href="/freelancer/projects/create">
             <Plus className="mr-1.5 h-4 w-4" />
-            New Project
+            {t("projects.new-project")}
           </Link>
         </Button>
       </div>
@@ -125,7 +129,7 @@ export default function ProjectsPage() {
             id="project-search"
             defaultValue={search}
             onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Search projects..."
+            placeholder={t("projects.search-placeholder")}
             className="pl-9"
           />
         </div>
@@ -155,17 +159,16 @@ export default function ProjectsPage() {
             <EmptyMedia variant={"icon"}>
               <FileQuestion />
             </EmptyMedia>
-            <EmptyTitle>No Projects Yet</EmptyTitle>
+            <EmptyTitle>{t("projects.empty-title")}</EmptyTitle>
             <EmptyDescription>
-              You haven&apos;t posted any projects yet. Get started by creating
-              your first project.
+              {t("projects.empty-description")}
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent className="flex-row justify-center gap-2">
             <Button asChild>
               <Link href="/freelancer/projects/create">
                 <Plus />
-                New Project
+                {t("projects.new-project")}
               </Link>
             </Button>
           </EmptyContent>
@@ -190,7 +193,7 @@ export default function ProjectsPage() {
           </PaginationItem>
           <PaginationItem>
             <span className="px-3 text-sm text-muted-foreground">
-              {loading ? "Loading..." : `Page ${page}`}
+              {loading ? t("projects.loading") : t("projects.page", { page })}
             </span>
           </PaginationItem>
           <PaginationItem>

@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export default function Footer() {
+  const t = useTranslations("portal");
   return (
     <div className="px-4 pb-4 md:px-6 md:pb-6">
       <footer className="w-full bg-neutral-950 rounded-[2rem] md:rounded-[3rem] text-neutral-400 overflow-hidden relative z-50">
@@ -21,33 +23,33 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-sm leading-relaxed max-w-sm text-neutral-400">
-              The secure client-freelancer portal built for speed, transparency, and safety. Building trust one milestone at a time.
+              {t("footer.description")}
             </p>
           </div>
 
           {/* Links Grid */}
           <div className="md:col-span-3 grid grid-cols-2 md:grid-cols-3 gap-8 md:gap-4">
             <div>
-              <h4 className="text-sm font-medium text-white mb-6">Product</h4>
+              <h4 className="text-sm font-medium text-white mb-6">{t("footer.product")}</h4>
               <div className="flex flex-col gap-4 text-sm">
-                <Link href="#" className="hover:text-white transition-colors">Escrow Payments</Link>
-                <Link href="#" className="hover:text-white transition-colors">Milestones</Link>
-                <Link href="#" className="hover:text-white transition-colors">Security</Link>
+                <Link href="#" className="hover:text-white transition-colors">{t("footer.escrowPayments")}</Link>
+                <Link href="#" className="hover:text-white transition-colors">{t("footer.milestones")}</Link>
+                <Link href="#" className="hover:text-white transition-colors">{t("footer.security")}</Link>
               </div>
             </div>
             <div>
-              <h4 className="text-sm font-medium text-white mb-6">Company</h4>
+              <h4 className="text-sm font-medium text-white mb-6">{t("footer.company")}</h4>
               <div className="flex flex-col gap-4 text-sm">
-                <Link href="#" className="hover:text-white transition-colors">About Us</Link>
-                <Link href="#" className="hover:text-white transition-colors">Blog</Link>
-                <Link href="#" className="hover:text-white transition-colors">Careers</Link>
+                <Link href="#" className="hover:text-white transition-colors">{t("footer.aboutUs")}</Link>
+                <Link href="#" className="hover:text-white transition-colors">{t("footer.blog")}</Link>
+                <Link href="#" className="hover:text-white transition-colors">{t("footer.careers")}</Link>
               </div>
             </div>
             <div>
-              <h4 className="text-sm font-medium text-white mb-6">Legal</h4>
+              <h4 className="text-sm font-medium text-white mb-6">{t("footer.legal")}</h4>
               <div className="flex flex-col gap-4 text-sm">
-                <Link href="#" className="hover:text-white transition-colors">Privacy Policy</Link>
-                <Link href="#" className="hover:text-white transition-colors">Terms of Service</Link>
+                <Link href="#" className="hover:text-white transition-colors">{t("footer.privacyPolicy")}</Link>
+                <Link href="#" className="hover:text-white transition-colors">{t("footer.termsOfService")}</Link>
               </div>
             </div>
           </div>
@@ -59,7 +61,7 @@ export default function Footer() {
           <div className="w-full h-px bg-neutral-800/50 mb-8" />
           
           <div className="w-full flex flex-col md:flex-row justify-between items-center gap-4 text-sm mb-12">
-            <span>© {new Date().getFullYear()} Veritas Inc. All rights reserved.</span>
+            <span>{t("footer.copyright", { year: new Date().getFullYear() })}</span>
             <div className="flex gap-6">
               <Link href="#" className="hover:text-white transition-colors">Twitter</Link>
               <Link href="#" className="hover:text-white transition-colors">GitHub</Link>

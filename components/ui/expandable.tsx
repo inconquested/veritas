@@ -15,6 +15,7 @@ import {
   useMotionValue,
   useSpring,
 } from "motion/react";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 
@@ -492,6 +493,7 @@ const ExpandableTrigger = React.forwardRef<
   React.HTMLAttributes<HTMLDivElement>
 >(({ children, className, ...props }, ref) => {
   const { toggleExpand } = useExpandable();
+  const t = useTranslations("common");
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
@@ -507,7 +509,7 @@ const ExpandableTrigger = React.forwardRef<
       onKeyDown={handleKeyDown}
       role="button"
       tabIndex={0}
-      aria-label="Toggle expand"
+      aria-label={t("toggleExpand")}
       className={cn("cursor-pointer", className)}
       {...props}
     >

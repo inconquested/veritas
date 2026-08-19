@@ -14,6 +14,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useTranslations } from "next-intl";
 import { useUser } from "@clerk/nextjs";
 import { UserProfile } from "@clerk/nextjs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -49,12 +50,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 type SettingsArea = "client" | "freelancer";
 
 const themeOptions = [
-  { value: "system", label: "System", icon: Monitor },
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: Moon },
+  { value: "system", icon: Monitor },
+  { value: "light", icon: Sun },
+  { value: "dark", icon: Moon },
 ] as const;
 
 export function AccountSettings({ area }: { area: SettingsArea }) {
+  const t = useTranslations("settings");
   const { user, isLoaded } = useUser();
   const { theme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState("profile");
@@ -68,17 +70,20 @@ export function AccountSettings({ area }: { area: SettingsArea }) {
     return `${first}${last}`.toUpperCase();
   }, [user]);
 
-  const email = user?.primaryEmailAddress?.emailAddress ?? "No primary email";
+  const email =
+    user?.primaryEmailAddress?.emailAddress ?? t("no-primary-email");
   const fullName =
     [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
     user?.username ||
-    "Your account";
+    t("your-account");
   const title =
-    area === "freelancer" ? "Account settings" : "Workspace settings";
+    area === "freelancer"
+      ? t("account-settings-title")
+      : t("workspace-settings-title");
   const description =
     area === "freelancer"
-      ? "Manage your profile, password, authentication, and appearance."
-      : "Manage your profile access, sign-in security, and workspace appearance.";
+      ? t("account-settings-desc")
+      : t("workspace-settings-desc");
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 sm:p-6 lg:p-8">
@@ -95,14 +100,14 @@ export function AccountSettings({ area }: { area: SettingsArea }) {
               <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
               <Badge variant="outline" className="gap-1 text-muted-foreground">
                 <CheckCircle2 className="size-3.5" />
-                Clerk connected
+                {t("clerk-connected")}
               </Badge>
             </div>
             <p className="max-w-[65ch] text-sm text-muted-foreground">
               {description}
             </p>
             <p className="text-sm font-medium text-foreground">
-              {isLoaded ? email : "Loading account..."}
+              {isLoaded ? email : t("loading-account")}
             </p>
           </div>
         </div>
@@ -115,7 +120,7 @@ export function AccountSettings({ area }: { area: SettingsArea }) {
                 : "/client/homepage"
             }
           >
-            Back to workspace
+            {t("back-to-workspace")}
           </Link>
         </Button>
       </div>
@@ -123,9 +128,9 @@ export function AccountSettings({ area }: { area: SettingsArea }) {
       <div className="grid gap-6 xl:grid-cols-[260px_minmax(0,1fr)]">
         <Card className="h-fit border-border/70 bg-card/80 shadow-sm">
           <CardHeader>
-            <CardTitle>Preferences</CardTitle>
+            <CardTitle>{t("preferences")}</CardTitle>
             <CardDescription>
-              Everything that affects how you sign in and how the app feels.
+              {t("preferences-desc")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -144,28 +149,28 @@ export function AccountSettings({ area }: { area: SettingsArea }) {
                   className="min-h-11 justify-start px-3"
                 >
                   <UserRound className="size-4" />
-                  Profile
+                  {t("profile")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="security"
                   className="min-h-11 justify-start px-3"
                 >
                   <ShieldCheck className="size-4" />
-                  Security
+                  {t("security")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="password"
                   className="min-h-11 justify-start px-3"
                 >
                   <Lock className="size-4" />
-                  Password
+                  {t("password")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="theme"
                   className="min-h-11 justify-start px-3"
                 >
                   <Palette className="size-4" />
-                  Theme
+                  {t("theme")}
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -176,38 +181,36 @@ export function AccountSettings({ area }: { area: SettingsArea }) {
           <TabsContent value="profile" animated className="mt-0 space-y-6">
             <Card className="border-border/70 shadow-sm">
               <CardHeader>
-                <CardTitle>Public profile</CardTitle>
+                <CardTitle>{t("public-profile")}</CardTitle>
                 <CardDescription>
-                  Update your name, avatar, and contact details through Clerk.
+                  {t("public-profile-desc")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-5">
                 <FieldGroup>
                   <Field orientation="responsive">
                     <FieldLabel>
-                      <FieldTitle>Name</FieldTitle>
+                      <FieldTitle>{t("name")}</FieldTitle>
                     </FieldLabel>
                     <FieldContent>
                       <p className="text-sm font-medium">
-                        {isLoaded ? fullName : "Loading..."}
+                        {isLoaded ? fullName : t("loading")}
                       </p>
                       <FieldDescription>
-                        Your display name is shared across your signed-in
-                        workspace.
+                        {t("name-desc")}
                       </FieldDescription>
                     </FieldContent>
                   </Field>
                   <Field orientation="responsive">
                     <FieldLabel>
-                      <FieldTitle>Email address</FieldTitle>
+                      <FieldTitle>{t("email-address")}</FieldTitle>
                     </FieldLabel>
                     <FieldContent>
                       <p className="text-sm font-medium">
-                        {isLoaded ? email : "Loading..."}
+                        {isLoaded ? email : t("loading")}
                       </p>
                       <FieldDescription>
-                        Use Clerk to add, verify, or switch primary email
-                        addresses.
+                        {t("email-desc")}
                       </FieldDescription>
                     </FieldContent>
                   </Field>
@@ -215,11 +218,10 @@ export function AccountSettings({ area }: { area: SettingsArea }) {
               </CardContent>
               <CardFooter className="justify-between gap-3 max-sm:flex-col max-sm:items-stretch">
                 <p className="text-sm text-muted-foreground">
-                  Profile editing stays inside Clerk so auth state and verified
-                  fields stay in sync.
+                  {t("profile-footer")}
                 </p>
                 <Button asChild className="min-h-10">
-                  <a href="#clerk-profile">Manage profile</a>
+                  <a href="#clerk-profile">{t("manage-profile")}</a>
                 </Button>
               </CardFooter>
             </Card>
@@ -228,29 +230,26 @@ export function AccountSettings({ area }: { area: SettingsArea }) {
           <TabsContent value="password" animated className="mt-0 space-y-6">
             <Card className="border-border/70 shadow-sm">
               <CardHeader>
-                <CardTitle>Password and sessions</CardTitle>
+                <CardTitle>{t("password-sessions")}</CardTitle>
                 <CardDescription>
-                  Reset your password and review active devices from the same
-                  secure account panel.
+                  {t("password-desc")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 text-sm text-muted-foreground">
                 <p>
-                  Clerk already handles password updates, session revocation,
-                  and email verification flows.
+                  {t("password-info")}
                 </p>
                 <div className="rounded-xl border border-border/70 bg-muted/30 p-4 text-foreground">
-                  <p className="font-medium">Need to rotate your password?</p>
+                  <p className="font-medium">{t("password-rotate")}</p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Use the security tab below to change it without building a
-                    duplicate form.
+                    {t("password-rotate-desc")}
                   </p>
                 </div>
               </CardContent>
               <CardFooter className="justify-end">
                 <Button asChild variant="outline" className="min-h-10">
                   <a href="#clerk-profile">
-                    Go to account controls
+                    {t("account-controls")}
                     <ExternalLink className="size-4" />
                   </a>
                 </Button>
@@ -261,20 +260,19 @@ export function AccountSettings({ area }: { area: SettingsArea }) {
           <TabsContent value="theme" animated className="mt-0 space-y-6">
             <Card className="border-border/70 shadow-sm">
               <CardHeader>
-                <CardTitle>Appearance</CardTitle>
+                <CardTitle>{t("appearance")}</CardTitle>
                 <CardDescription>
-                  Choose how Veritas looks on this device. System follows your
-                  OS preference.
+                  {t("appearance-desc")}
                 </CardDescription>
                 <CardAction>
-                  <Badge variant="outline">Responsive</Badge>
+                  <Badge variant="outline">{t("responsive")}</Badge>
                 </CardAction>
               </CardHeader>
               <CardContent className="space-y-5">
                 <FieldGroup>
                   <Field orientation="responsive">
                     <FieldLabel>
-                      <FieldTitle>Theme mode</FieldTitle>
+                      <FieldTitle>{t("theme-mode")}</FieldTitle>
                     </FieldLabel>
                     <FieldContent>
                       <Select
@@ -282,7 +280,7 @@ export function AccountSettings({ area }: { area: SettingsArea }) {
                         onValueChange={setTheme}
                       >
                         <SelectTrigger className="min-h-10 w-full sm:w-55">
-                          <SelectValue placeholder="Select theme" />
+                          <SelectValue placeholder={t("select-theme")} />
                         </SelectTrigger>
                         <SelectContent>
                           {themeOptions.map((option) => {
@@ -294,7 +292,7 @@ export function AccountSettings({ area }: { area: SettingsArea }) {
                               >
                                 <span>
                                   <Icon className="size-4" />
-                                  {option.label}
+                                  {t(`theme-${option.value}`)}
                                 </span>
                               </SelectItem>
                             );
@@ -302,8 +300,7 @@ export function AccountSettings({ area }: { area: SettingsArea }) {
                         </SelectContent>
                       </Select>
                       <FieldDescription>
-                        Theme changes apply instantly and also style Clerk's
-                        embedded account UI.
+                        {t("theme-desc")}
                       </FieldDescription>
                     </FieldContent>
                   </Field>
@@ -314,10 +311,9 @@ export function AccountSettings({ area }: { area: SettingsArea }) {
 
           <Card id="clerk-profile" className="border-border/70 shadow-sm">
             <CardHeader>
-              <CardTitle>Manage account with Clerk</CardTitle>
+              <CardTitle>{t("manage-account")}</CardTitle>
               <CardDescription>
-                Profile details, password changes, multi-factor auth, and
-                connected sign-in methods live here.
+                {t("manage-account-desc")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -341,10 +337,9 @@ export function AccountSettings({ area }: { area: SettingsArea }) {
             </CardContent>
             <CardFooter className="flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-1 text-sm text-muted-foreground">
-                <p>Use the sidebar inside Clerk for deeper account flows.</p>
+                <p>{t("clerk-sidebar-info")}</p>
                 <p>
-                  That includes profile, security, connected accounts, and
-                  session management.
+                  {t("clerk-sidebar-info2")}
                 </p>
               </div>
               <Button asChild variant="ghost" className="min-h-10">
@@ -355,7 +350,7 @@ export function AccountSettings({ area }: { area: SettingsArea }) {
                       : "/client/homepage"
                   }
                 >
-                  Done
+                  {t("done")}
                 </Link>
               </Button>
             </CardFooter>

@@ -54,39 +54,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { useClerk, useUser } from "@clerk/nextjs";
-
-/* ─── Navigation config ─── */
-const navMain: NavItem[] = [
-  {
-    title: "Dashboard",
-    icon: LayoutDashboard,
-    href: "/freelancer/dashboard",
-  },
-  {
-    title: "Projects",
-    icon: FolderOpen,
-    href: "/freelancer/projects",
-    badge: "6",
-    action: { href: "/freelancer/projects/create", label: "New Project" },
-    children: [
-      { title: "All Projects", href: "/freelancer/projects" },
-      { title: "Create New", href: "/freelancer/projects/create" },
-    ],
-  },
-  {
-    title: "Clients",
-    icon: Users,
-    href: "/freelancer/clients",
-    badge: "5",
-    children: [{ title: "All Clients", href: "/freelancer/clients" }],
-  },
-];
-
-const navInsights: NavItem[] = [
-  { title: "Revenue", icon: TrendingUp, href: "/freelancer/dashboard" },
-  { title: "Invoices", icon: Receipt, href: "/freelancer/dashboard" },
-  { title: "Milestones", icon: Milestone, href: "/freelancer/dashboard" },
-];
+import { useTranslations } from "next-intl";
 
 export default function FreelancerLayout({
   children,
@@ -98,12 +66,48 @@ export default function FreelancerLayout({
   const { signOut } = useClerk();
   const {user} = useUser();
 
+  const td = useTranslations("dashboard");
+  const tf = useTranslations("freelancer");
+
+  /* ─── Navigation config ─── */
+  const navMain: NavItem[] = [
+    {
+      title: td("title"),
+      icon: LayoutDashboard,
+      href: "/freelancer/dashboard",
+    },
+    {
+      title: tf("nav.projects"),
+      icon: FolderOpen,
+      href: "/freelancer/projects",
+      badge: "6",
+      action: { href: "/freelancer/projects/create", label: tf("nav.newProject") },
+      children: [
+        { title: tf("nav.allProjects"), href: "/freelancer/projects" },
+        { title: tf("nav.createNew"), href: "/freelancer/projects/create" },
+      ],
+    },
+    {
+      title: tf("nav.clients"),
+      icon: Users,
+      href: "/freelancer/clients",
+      badge: "5",
+      children: [{ title: tf("nav.allClients"), href: "/freelancer/clients" }],
+    },
+  ];
+
+  const navInsights: NavItem[] = [
+    { title: tf("nav.revenue"), icon: TrendingUp, href: "/freelancer/dashboard" },
+    { title: tf("nav.invoices"), icon: Receipt, href: "/freelancer/dashboard" },
+    { title: tf("nav.milestones"), icon: Milestone, href: "/freelancer/dashboard" },
+  ];
+
   useKeyboardShortcuts([
-    { key: "d", href: "/freelancer/dashboard", description: "Go to Dashboard", requiresPrefix: true },
-    { key: "p", href: "/freelancer/projects", description: "Go to Projects", requiresPrefix: true },
-    { key: "c", href: "/freelancer/clients", description: "Go to Clients", requiresPrefix: true },
-    { key: "n", href: "/freelancer/projects/create", description: "Create New Project", requiresPrefix: true },
-    { key: "s", href: "/freelancer/settings", description: "Go to Settings", requiresPrefix: true },
+    { key: "d", href: "/freelancer/dashboard", description: tf("shortcuts.goToDashboard"), requiresPrefix: true },
+    { key: "p", href: "/freelancer/projects", description: tf("shortcuts.goToProjects"), requiresPrefix: true },
+    { key: "c", href: "/freelancer/clients", description: tf("shortcuts.goToClients"), requiresPrefix: true },
+    { key: "n", href: "/freelancer/projects/create", description: tf("shortcuts.createNewProject"), requiresPrefix: true },
+    { key: "s", href: "/freelancer/settings", description: tf("shortcuts.goToSettings"), requiresPrefix: true },
   ]);
 
   return (
@@ -121,7 +125,7 @@ export default function FreelancerLayout({
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">Veritas</span>
                     <span className="truncate text-xs text-muted-foreground">
-                      Freelancer
+                      {tf("nav.role")}
                     </span>
                   </div>
                 </Link>
@@ -135,7 +139,7 @@ export default function FreelancerLayout({
         {/* ─── Main nav ─── */}
         <SidebarContent className="gap-0!">
           <SidebarGroup>
-            <SidebarGroupLabel>Workspace</SidebarGroupLabel>
+            <SidebarGroupLabel>{tf("nav.workspace")}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {navMain.map((item) => {
@@ -167,7 +171,7 @@ export default function FreelancerLayout({
 
           {/* ─── Insights shortcuts ─── */}
           <SidebarGroup>
-            <SidebarGroupLabel>Insights</SidebarGroupLabel>
+            <SidebarGroupLabel>{tf("nav.insights")}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {navInsights.map((item) => {
@@ -206,7 +210,7 @@ export default function FreelancerLayout({
                       </AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-semibold">Freelancer</span>
+                      <span className="truncate font-semibold">{tf("nav.role")}</span>
                       <span className="truncate text-xs text-muted-foreground">
                         hello@freelancer.dev
                       </span>
@@ -224,7 +228,7 @@ export default function FreelancerLayout({
                     <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                       <Avatar className="h-8 w-8 rounded-lg">
                         <AvatarFallback className="rounded-lg bg-primary/15 text-xs font-bold text-primary">
-                          useInitial(`${user?.firstName} ${user?.lastName}` || "FL")
+                          {useInitial(`${user?.firstName} ${user?.lastName}` || "FL")}
                         </AvatarFallback>
                       </Avatar>
                       <div className="grid flex-1 text-left text-sm leading-tight">
@@ -245,14 +249,14 @@ export default function FreelancerLayout({
                         className="flex items-center gap-2"
                       >
                         <Settings />
-                        Account Settings
+                        {tf("nav.accountSettings")}
                       </Link>
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => signOut()}>
                     <LogOut />
-                    Sign out
+                    {tf("nav.signOut")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

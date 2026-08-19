@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { validator } from "hono/validator";
 import { invoiceService } from "@/services/invoice-service";
 import {
@@ -7,8 +7,28 @@ import {
   UpdateInvoiceSchema,
 } from "@/schemas";
 import { formatZodIssues, toJsonSafe } from "@/lib/utils";
+import {
+  authErrorResponse,
+  invoiceScopeWhere,
+  requireInvoiceAccess,
+  requireProjectAccess,
+  requireUser,
+} from "@/services/auth-context";
 
 const invoicesApp = new Hono({ strict: false });
+
+function fail(c: Context, error: unknown, fallback: string, status = 400) {
+  const auth = authErrorResponse(error);
+  if (auth) return c.json(auth.body, auth.status as never);
+  console.error("Invoices API error", {
+    fallback,
+    message: error instanceof Error ? error.message : String(error),
+  });
+  return c.json(
+    { success: false, errorKey: fallback },
+    status as never,
+  );
+}
 
 invoicesApp.post(
   "/",
@@ -28,54 +48,41 @@ invoicesApp.post(
   }),
   async (c) => {
     try {
+      const user = await requireUser();
       const payload = c.req.valid("json");
+      await requireProjectAccess(payload.project_id, user, "write");
       const invoice = await invoiceService.createInvoice(payload);
       return c.json({ success: true, data: toJsonSafe(invoice) }, 201);
     } catch (error) {
-      return c.json(
-        {
-          success: false,
-          errorKey: "errors.invoice.creation_failed",
-        },
-        400,
-      );
+      return fail(c, error, "errors.invoice.creation_failed");
     }
   },
 );
 
 invoicesApp.get("/", async (c) => {
   try {
+    const user = await requireUser();
     const projectId = c.req.query("projectId");
     const limit = Number(c.req.query("limit") ?? 10);
+    const scope = invoiceScopeWhere(user);
     const invoices = projectId
-      ? await invoiceService.getProjectInvoices(projectId)
-      : await invoiceService.getInvoices(limit);
+      ? await invoiceService.getProjectInvoices(projectId, scope)
+      : await invoiceService.getInvoices(limit, scope);
     return c.json({ success: true, data: toJsonSafe(invoices) });
   } catch (error) {
-    return c.json(
-      {
-        success: false,
-        errorKey: "errors.invoices.fetch_failed",
-      },
-      500,
-    );
+    return fail(c, error, "errors.invoices.fetch_failed", 500);
   }
 });
 
 invoicesApp.get("/:id", async (c) => {
   const id = c.req.param("id");
-
   try {
+    const user = await requireUser();
+    await requireInvoiceAccess(id, user, "read");
     const invoice = await invoiceService.getInvoice(id);
     return c.json({ success: true, data: toJsonSafe(invoice) });
   } catch (error) {
-    return c.json(
-      {
-        success: false,
-        errorKey: "errors.notExist",
-      },
-      404,
-    );
+    return fail(c, error, "errors.notExist", 404);
   }
 });
 
@@ -97,19 +104,14 @@ invoicesApp.put(
   }),
   async (c) => {
     const id = c.req.param("id");
-
     try {
+      const user = await requireUser();
+      await requireInvoiceAccess(id, user, "write");
       const payload = c.req.valid("json");
       const updatedInvoice = await invoiceService.updateInvoice(id, payload);
       return c.json({ success: true, data: toJsonSafe(updatedInvoice) });
     } catch (error) {
-      return c.json(
-        {
-          success: false,
-          errorKey: "errors.invoice.update_failed",
-        },
-        400,
-      );
+      return fail(c, error, "errors.invoice.update_failed");
     }
   },
 );
@@ -132,13 +134,14 @@ invoicesApp.post(
   }),
   async (c) => {
     const id = c.req.param("id");
-
     try {
+      const user = await requireUser();
+      await requireInvoiceAccess(id, user, "read");
       const payload = c.req.valid("json");
       const paymentResult = await invoiceService.chargeInvoice({
         ...payload,
         id,
-      } as any);
+      });
 
       return c.json(
         {
@@ -148,31 +151,20 @@ invoicesApp.post(
         paymentResult.success ? 200 : 400,
       );
     } catch (error) {
-      return c.json(
-        {
-          success: false,
-          errorKey: "errors.invoice.charge_failed",
-        },
-        400,
-      );
+      return fail(c, error, "errors.invoice.charge_failed");
     }
   },
 );
 
 invoicesApp.delete("/:id", async (c) => {
   const id = c.req.param("id");
-
   try {
+    const user = await requireUser();
+    await requireInvoiceAccess(id, user, "write");
     const deleted = await invoiceService.deleteInvoice(id);
     return c.json({ success: deleted });
   } catch (error) {
-    return c.json(
-      {
-        success: false,
-        errorKey: "errors.invoice.delete_failed",
-      },
-      400,
-    );
+    return fail(c, error, "errors.invoice.delete_failed");
   }
 });
 

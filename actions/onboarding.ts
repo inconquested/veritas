@@ -1,18 +1,43 @@
 "use server"
 
 import {auth, clerkClient} from "@clerk/nextjs/server";
+import {
+    isTimeoutError,
+    TIMEOUT_ERROR_KEY,
+    withTimeout,
+} from "@/lib/action-timeout";
 
-export async function updateUserRole(role: "client" | "freelancer") {
+export type UpdateUserRoleResult =
+    | { success: true }
+    | { success: false; errorKey: string };
+
+export async function updateUserRole(
+    role: "client" | "freelancer",
+): Promise<UpdateUserRoleResult> {
     const {userId} = await auth()
     if (!userId) {
-        throw new Error("User not authenticated");
+        return {success: false, errorKey: "errors.unauthorized"};
     }
-    const client = await clerkClient()
 
-    await client.users.updateUserMetadata(userId,{
-        publicMetadata:{
-            role
+    try {
+        const client = await clerkClient()
+
+        // Clerk's SDK doesn't take an AbortSignal, so bound it with a timeout so
+        // the onboarding screen can recover instead of hanging on a slow call.
+        await withTimeout(
+            client.users.updateUserMetadata(userId, {
+                publicMetadata: {
+                    role
+                }
+            }),
+        )
+
+        return {success: true}
+    } catch (error) {
+        if (isTimeoutError(error)) {
+            return {success: false, errorKey: TIMEOUT_ERROR_KEY};
         }
-    })
-    return {success: true}
+        console.error("updateUserRole failed:", error);
+        return {success: false, errorKey: "errors.internal"};
+    }
 }

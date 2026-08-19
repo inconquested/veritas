@@ -10,6 +10,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { CalendarDays, ReceiptText } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 type Invoice = {
   id: string;
@@ -42,30 +43,33 @@ function formatMoney(amount: string | number | bigint, currency: string) {
   );
 }
 
-function formatDate(value: string | Date | null | undefined) {
-  if (!value) return "No due date";
+function formatDate(
+  value: string | Date | null | undefined,
+  emptyLabel: string,
+) {
+  if (!value) return emptyLabel;
   const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return "No due date";
+  if (Number.isNaN(date.getTime())) return emptyLabel;
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function getProjectLabel(project: Invoice["project"]) {
-  if (!project) return "Project billing";
+function getProjectLabel(project: Invoice["project"], fallback: string) {
+  if (!project) return fallback;
   if (typeof project === "string") return project;
-  return project.title ?? "Project billing";
+  return project.title ?? fallback;
 }
 
 export default async function ClientInvoicesPage() {
+  const t = await getTranslations("client");
   const result = await listInvoices();
   const invoices = result.success ? toArray<Invoice>(result.invoices) : [];
 
   return (
     <div className="space-y-6 p-6 lg:p-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Invoices</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("invoices.title")}</h1>
         <p className="text-sm text-muted-foreground">
-          {invoices.length} invoice{invoices.length === 1 ? "" : "s"} across all
-          synced projects.
+          {t("invoices.subtitle", { count: invoices.length })}
         </p>
       </div>
 
@@ -75,10 +79,9 @@ export default async function ClientInvoicesPage() {
             <EmptyMedia variant="icon">
               <ReceiptText className="h-4 w-4" />
             </EmptyMedia>
-            <EmptyTitle>No invoices yet</EmptyTitle>
+            <EmptyTitle>{t("invoices.emptyTitle")}</EmptyTitle>
             <EmptyDescription>
-              When the backend exposes invoice data for this client,
-              payment-ready invoices will appear here automatically.
+              {t("invoices.emptyDesc")}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -93,14 +96,14 @@ export default async function ClientInvoicesPage() {
                       {invoice.title}
                     </p>
                     <p className="truncate text-xs text-muted-foreground">
-                      {getProjectLabel(invoice.project)} ·{" "}
-                      {invoice.payment_method ?? "Hosted payment"}
+                      {getProjectLabel(invoice.project, t("invoices.projectBilling"))} ·{" "}
+                      {invoice.payment_method ?? t("invoices.hostedPayment")}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <CalendarDays className="h-3.5 w-3.5" />
-                      {formatDate(invoice.due_date)}
+                      {formatDate(invoice.due_date, t("invoices.noDueDate"))}
                     </div>
                     <span className="text-base font-bold">
                       {formatMoney(invoice.amount, invoice.currency)}
@@ -109,7 +112,7 @@ export default async function ClientInvoicesPage() {
                       variant="outline"
                       className={`text-xs ${statusStyle[invoice.status] ?? "bg-muted text-muted-foreground border-border"}`}
                     >
-                      {invoice.status}
+                      {t(`invoiceStatus.${invoice.status}`)}
                     </Badge>
                   </div>
                 </CardContent>

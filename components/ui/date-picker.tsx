@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/popover";
 
 export function DatePicker() {
+  const t = useTranslations("common");
   const [date, setDate] = React.useState<Date>();
 
   return (
@@ -25,7 +27,7 @@ export function DatePicker() {
           className="justify-start text-left font-normal data-[empty=true]:text-muted-foreground"
         >
           <CalendarIcon />
-          {date ? format(date, "PPP") : <span>Pick a date</span>}
+          {date ? format(date, "PPP") : <span>{t("pickDate")}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">

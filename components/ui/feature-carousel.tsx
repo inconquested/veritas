@@ -9,6 +9,7 @@ import {
   type MouseEvent,
 } from "react"
 import Image, { type StaticImageData } from "next/image"
+import { useTranslations } from "next-intl"
 import clsx from "clsx"
 import {
   AnimatePresence,
@@ -431,8 +432,9 @@ function Steps({
   current: number
   onChange: (index: number) => void
 }) {
+  const t = useTranslations("common")
   return (
-    <nav aria-label="Progress" className="flex justify-center px-4">
+    <nav aria-label={t("progress")} className="flex justify-center px-4">
       <ol
         className="flex w-full flex-wrap items-start justify-start gap-2 sm:justify-center md:w-10/12 md:divide-y-0"
         role="list"

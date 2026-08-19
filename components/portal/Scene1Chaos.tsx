@@ -3,6 +3,7 @@
 import { motion, MotionValue, useTransform } from "framer-motion";
 import { FileText } from "lucide-react";
 import { StickyNote } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 
 interface StickyProps {
@@ -154,6 +155,7 @@ function PaperStack({
   title,
   stamp = false,
 }: PaperStackProps) {
+  const t = useTranslations("portal");
   return (
     <div className={`absolute ${rotate} ${className}`}>
 
@@ -278,7 +280,7 @@ function PaperStack({
               <div className="w-28 h-[2px] bg-stone-400 rounded-full" />
 
               <div className="text-xs uppercase tracking-widest text-stone-500">
-                Signature
+                {t("scene1.signature")}
               </div>
 
             </div>
@@ -308,7 +310,7 @@ function PaperStack({
               text-rose-500
             "
             >
-              APPROVED
+              {t("scene1.approved")}
             </div>
           )}
         </div>
@@ -399,12 +401,15 @@ const DUST = Array.from({ length: 22 }).map((_, i) => ({
 }));
 
 export default function Scene1Chaos({ progress }: Props) {
-  const y = useTransform(progress, [0, 0.22], ["0%", "-120%"]);
-  const opacity = useTransform(progress, [0, 0.18, 0.22], [1, 1, 0]);
+  const t = useTranslations("portal");
+  // Scene1 exit window aligned with Scene2 entry so the crossfade is clean.
+  const y = useTransform(progress, [0, 0.20], ["0%", "-120%"]);
+  const opacity = useTransform(progress, [0, 0.15, 0.20], [1, 1, 0]);
+  const filter = useTransform(progress, [0.14, 0.20], ["blur(0px)", "blur(10px)"]);
 
   return (
     <motion.div
-      style={{ y, opacity }}
+      style={{ y, opacity, filter }}
       className="absolute inset-0 overflow-hidden bg-[#e9dbc8]"
     >
       {/* ======================================= */}
@@ -637,7 +642,7 @@ export default function Scene1Chaos({ progress }: Props) {
 
         */}
         <PaperStack
-  title="Purchase Agreement"
+  title={t("scene1.purchaseAgreement")}
   stamp
   rotate="-rotate-6"
   className="
@@ -655,7 +660,7 @@ export default function Scene1Chaos({ progress }: Props) {
 {/* RIGHT CONTRACT */}
 
 <PaperStack
-  title="Escrow Instructions"
+  title={t("scene1.escrowInstructions")}
   rotate="rotate-6"
   clipColor="#9CA3AF"
   className="
@@ -673,7 +678,7 @@ export default function Scene1Chaos({ progress }: Props) {
 <Sticky
   color="#A7F3D0"
   accent="#10B981"
-  title="Update escrow before Friday."
+  title={t("scene1.stickyUpdateEscrow")}
   className="
   top-[16%]
   right-[22%]
@@ -685,7 +690,7 @@ export default function Scene1Chaos({ progress }: Props) {
 <Sticky
   color="#FBCFE8"
   accent="#EC4899"
-  title="Verify buyer documents."
+  title={t("scene1.stickyVerifyBuyer")}
   className="
   bottom-[24%]
   left-[20%]

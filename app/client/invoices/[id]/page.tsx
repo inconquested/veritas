@@ -1,10 +1,20 @@
 import { notFound } from "next/navigation";
 import ClientChargeDialog from "@/components/ui/invoice-charge-dialog";
+import EscrowPanel from "@/components/ui/escrow-panel";
 import { getInvoice } from "@/actions/invoices";
+import { getEscrowState } from "@/actions/escrow";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CalendarDays, CreditCard, DollarSign, Sparkles } from "lucide-react";
+import { getTranslations } from "next-intl/server";
+
+type EscrowStateValue =
+  | "INITIALIZED"
+  | "FUNDS_HELD"
+  | "DISPUTED"
+  | "RELEASED"
+  | "REFUNDED";
 
 type Invoice = {
   id: string;
@@ -38,21 +48,22 @@ function formatMoney(amount: string | number | bigint, currency: string) {
 
 function formatDate(
   value: string | Date | null | undefined,
+  emptyLabel: string,
   options?: Intl.DateTimeFormatOptions,
 ) {
-  if (!value) return "Not available";
+  if (!value) return emptyLabel;
   const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return "Not available";
+  if (Number.isNaN(date.getTime())) return emptyLabel;
   return date.toLocaleDateString(
     "en-US",
     options ?? { month: "long", day: "numeric", year: "numeric" },
   );
 }
 
-function getProjectLabel(project: Invoice["project"]) {
-  if (!project) return "Project billing";
+function getProjectLabel(project: Invoice["project"], fallback: string) {
+  if (!project) return fallback;
   if (typeof project === "string") return project;
-  return project.title ?? "Project billing";
+  return project.title ?? fallback;
 }
 
 export default async function InvoiceDetailPage({
@@ -60,6 +71,7 @@ export default async function InvoiceDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = await getTranslations("client");
   const { id } = await params;
   const result = await getInvoice(id);
 
@@ -71,12 +83,17 @@ export default async function InvoiceDetailPage({
   const amountLabel = formatMoney(invoice.amount, invoice.currency);
   const payable = invoice.status !== "PAID" && invoice.status !== "REFUNDED";
 
+  const escrowResult = await getEscrowState(id);
+  const escrowState = escrowResult.success
+    ? ((escrowResult.escrow as { state?: EscrowStateValue } | null)?.state ?? null)
+    : null;
+
   return (
     <div className="max-w-3xl space-y-6 p-6 lg:p-8">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="mb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            {getProjectLabel(invoice.project)}
+            {getProjectLabel(invoice.project, t("invoices.projectBilling"))}
           </p>
           <h1 className="text-2xl font-bold tracking-tight">{invoice.title}</h1>
         </div>
@@ -84,19 +101,19 @@ export default async function InvoiceDetailPage({
           variant="outline"
           className={`px-3 py-1 text-sm ${statusStyle[invoice.status] ?? "bg-muted text-muted-foreground border-border"}`}
         >
-          {invoice.status}
+          {t(`invoiceStatus.${invoice.status}`)}
         </Badge>
       </div>
 
       <Card className="border border-border/60 shadow-sm">
         <CardHeader className="pb-0">
-          <CardTitle className="text-base">Invoice Details</CardTitle>
+          <CardTitle className="text-base">{t("invoiceDetail.title")}</CardTitle>
         </CardHeader>
         <CardContent className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="col-span-full flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
             <DollarSign className="h-8 w-8 text-primary" />
             <div>
-              <p className="text-xs text-muted-foreground">Amount Due</p>
+              <p className="text-xs text-muted-foreground">{t("invoiceDetail.amountDue")}</p>
               <p className="text-3xl font-bold tracking-tight">{amountLabel}</p>
               <p className="text-xs text-muted-foreground">
                 {invoice.currency}
@@ -106,39 +123,39 @@ export default async function InvoiceDetailPage({
 
           <div className="space-y-1">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Due Date
+              {t("invoiceDetail.dueDate")}
             </p>
             <div className="flex items-center gap-1.5 text-sm font-medium">
               <CalendarDays className="h-4 w-4 text-muted-foreground" />
-              {formatDate(invoice.due_date)}
+              {formatDate(invoice.due_date, t("invoiceDetail.notAvailable"))}
             </div>
           </div>
 
           <div className="space-y-1">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Payment Method
+              {t("invoiceDetail.paymentMethod")}
             </p>
             <div className="flex items-center gap-1.5 text-sm font-medium">
               <CreditCard className="h-4 w-4 text-muted-foreground" />
-              {invoice.payment_method ?? "Hosted checkout"}
+              {invoice.payment_method ?? t("invoiceDetail.hostedCheckout")}
             </div>
           </div>
 
           <div className="space-y-1">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Issued On
+              {t("invoiceDetail.issuedOn")}
             </p>
             <p className="text-sm font-medium">
-              {formatDate(invoice.created_at)}
+              {formatDate(invoice.created_at, t("invoiceDetail.notAvailable"))}
             </p>
           </div>
 
           <div className="space-y-1">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Project
+              {t("invoiceDetail.project")}
             </p>
             <p className="text-sm font-medium">
-              {getProjectLabel(invoice.project)}
+              {getProjectLabel(invoice.project, t("invoices.projectBilling"))}
             </p>
           </div>
         </CardContent>
@@ -147,7 +164,7 @@ export default async function InvoiceDetailPage({
       {invoice.notes ? (
         <Card className="border border-border/60 shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Notes</CardTitle>
+            <CardTitle className="text-base">{t("invoiceDetail.notes")}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm leading-relaxed text-muted-foreground">
@@ -157,17 +174,18 @@ export default async function InvoiceDetailPage({
         </Card>
       ) : null}
 
+      <EscrowPanel invoiceId={id} role="CLIENT" state={escrowState} />
+
       {payable ? (
         <Card className="border border-border/60 shadow-sm">
           <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="flex items-center gap-2 text-sm font-medium">
                 <Sparkles className="h-4 w-4 text-primary" />
-                Launch payment from a server action
+                {t("invoiceDetail.launchPayment")}
               </p>
               <p className="text-sm text-muted-foreground">
-                The frontend adapts to the backend provider flow and redirects
-                only when the payment gateway returns a hosted checkout URL.
+                {t("invoiceDetail.paymentDesc")}
               </p>
             </div>
             <ClientChargeDialog
@@ -180,10 +198,11 @@ export default async function InvoiceDetailPage({
         </Card>
       ) : (
         <Alert>
-          <AlertTitle>This invoice is already settled</AlertTitle>
+          <AlertTitle>{t("invoiceDetail.settledTitle")}</AlertTitle>
           <AlertDescription>
-            Payment is disabled because the current status is{" "}
-            {invoice.status.toLowerCase()}.
+            {t("invoiceDetail.settledDesc", {
+              status: invoice.status.toLowerCase(),
+            })}
           </AlertDescription>
         </Alert>
       )}

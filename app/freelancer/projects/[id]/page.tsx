@@ -11,6 +11,7 @@ import {
   Pencil,
 } from "lucide-react";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 
 type Project = {
@@ -53,44 +54,45 @@ const progressByStatus: Record<string, number> = {
 
 const tabs = [
   {
-    label: "Milestones",
+    labelKey: "milestones.title",
     href: (id: string) => `/freelancer/projects/${id}/milestones`,
     icon: Milestone,
   },
   {
-    label: "Invoices",
+    labelKey: "invoices.title",
     href: (id: string) => `/freelancer/projects/${id}/invoices`,
     icon: FileText,
   },
   {
-    label: "Handsouts",
+    labelKey: "handsouts.title",
     href: (id: string) => `/freelancer/projects/${id}/handsouts`,
     icon: FolderOpen,
   },
-];
+] as const;
 
 function toArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : [];
 }
 
-function name(project: Project) {
+function name(project: Project, fallback: string) {
   const client = project.client;
   return (
     [client?.firstName, client?.lastName].filter(Boolean).join(" ") ||
     client?.instanceName ||
     client?.email ||
-    "Client"
+    fallback
   );
 }
 
 function date(
   value: string | Date | null | undefined,
+  fallback: string,
   options?: Intl.DateTimeFormatOptions,
 ) {
-  if (!value) return "Not scheduled";
+  if (!value) return fallback;
   const parsed = value instanceof Date ? value : new Date(value);
   return Number.isNaN(parsed.getTime())
-    ? "Not scheduled"
+    ? fallback
     : parsed.toLocaleDateString(
         "en-US",
         options ?? { month: "short", day: "numeric", year: "numeric" },
@@ -103,6 +105,7 @@ export default async function ProjectDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const t = await getTranslations("freelancer");
   const result = await getProject(id);
 
   if (!result.success) notFound();
@@ -118,6 +121,7 @@ export default async function ProjectDetailPage({
     .filter(Boolean)
     .at(-1);
   const progress = progressByStatus[project.status ?? ""] ?? 0;
+  const notScheduled = t("projects.detail.not-scheduled");
 
   return (
     <div className="space-y-6 p-6 lg:p-8">
@@ -128,35 +132,48 @@ export default async function ProjectDetailPage({
               variant="outline"
               className={`text-xs ${statusColors[project.status ?? ""] ?? statusColors.CANCELLED}`}
             >
-              {project.status ?? "ONBOARDING"}
+              {t(`status.${project.status ?? "ONBOARDING"}`)}
             </Badge>
             <span className="text-xs text-muted-foreground">
-              {name(project)}
+              {name(project, t("projects.client-fallback"))}
             </span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight">{project.title}</h1>
           <p className="max-w-3xl text-sm text-muted-foreground">
-            {project.description ??
-              "Project details are synced from the backend."}
+            {project.description ?? t("projects.detail.description-fallback")}
           </p>
         </div>
         <Button variant="outline" size="sm" asChild className="shrink-0">
           <Link href={`/freelancer/projects/${id}/update`}>
             <Pencil className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-            Edit
+            {t("projects.detail.edit")}
           </Link>
         </Button>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
-          { label: "Due Date", value: date(due ?? project.updatedAt) },
           {
-            label: "Started",
-            value: date(project.createdAt, { month: "short", year: "numeric" }),
+            label: t("projects.detail.due-date"),
+            value: date(due ?? project.updatedAt, notScheduled),
           },
-          { label: "Milestones", value: `${milestones.length} total` },
-          { label: "Invoices", value: `${invoices.length} total` },
+          {
+            label: t("projects.detail.started"),
+            value: date(project.createdAt, notScheduled, {
+              month: "short",
+              year: "numeric",
+            }),
+          },
+          {
+            label: t("milestones.title"),
+            value: t("projects.detail.count-total", {
+              count: milestones.length,
+            }),
+          },
+          {
+            label: t("invoices.title"),
+            value: t("projects.detail.count-total", { count: invoices.length }),
+          },
         ].map((stat) => (
           <Card key={stat.label} className="border border-border/60 shadow-sm">
             <CardContent className="p-4">
@@ -172,7 +189,7 @@ export default async function ProjectDetailPage({
       <Card className="border border-border/60 shadow-sm">
         <CardContent className="space-y-2 p-4">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Overall progress</span>
+            <span>{t("projects.detail.overall-progress")}</span>
             <span className="font-medium text-foreground">{progress}%</span>
           </div>
           <Progress value={progress} className="h-2" />
@@ -181,16 +198,16 @@ export default async function ProjectDetailPage({
 
       <nav
         className="flex gap-1 border-b border-border"
-        aria-label="Project sections"
+        aria-label={t("projects.detail.sections-aria")}
       >
         {tabs.map((tab) => (
           <Link
-            key={tab.label}
+            key={tab.labelKey}
             href={tab.href(id)}
             className="flex items-center gap-1.5 border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <tab.icon className="h-4 w-4" aria-hidden="true" />
-            {tab.label}
+            {t(tab.labelKey)}
           </Link>
         ))}
       </nav>
@@ -198,17 +215,21 @@ export default async function ProjectDetailPage({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="border border-border/60 shadow-sm">
           <CardContent className="p-4 text-sm">
-            {milestones.length} milestones planned
+            {t("projects.detail.milestones-planned", {
+              count: milestones.length,
+            })}
           </CardContent>
         </Card>
         <Card className="border border-border/60 shadow-sm">
           <CardContent className="p-4 text-sm">
-            {invoices.length} invoices attached
+            {t("projects.detail.invoices-attached", { count: invoices.length })}
           </CardContent>
         </Card>
         <Card className="border border-border/60 shadow-sm">
           <CardContent className="p-4 text-sm">
-            {handsouts.length} handsouts delivered
+            {t("projects.detail.handsouts-delivered", {
+              count: handsouts.length,
+            })}
           </CardContent>
         </Card>
       </div>

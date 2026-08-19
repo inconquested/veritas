@@ -2,6 +2,7 @@ import { listProjects } from "@/actions/projects";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { FolderOpen, Search, UsersRound } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 type Project = {
   updatedAt?: string | Date | null;
@@ -31,20 +32,20 @@ function getInitials(name: string) {
     .slice(0, 2);
 }
 
-function clientName(client: Project["client"]) {
+function clientName(client: Project["client"], fallback: string) {
   return (
     [client?.firstName, client?.lastName].filter(Boolean).join(" ") ||
     client?.instanceName ||
     client?.email ||
-    "Client"
+    fallback
   );
 }
 
-function date(value: string | Date | null | undefined) {
-  if (!value) return "recently";
+function date(value: string | Date | null | undefined, recently: string) {
+  if (!value) return recently;
   const parsed = value instanceof Date ? value : new Date(value);
   return Number.isNaN(parsed.getTime())
-    ? "recently"
+    ? recently
     : parsed.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
@@ -53,6 +54,7 @@ export default async function ClientsPage({
 }: {
   searchParams?: Promise<{ search?: string }>;
 }) {
+  const t = await getTranslations("freelancer");
   const params = await searchParams;
   const search = params?.search?.trim().toLowerCase() ?? "";
   const result = await listProjects({
@@ -68,12 +70,12 @@ export default async function ClientsPage({
     projects
       .reduce((map, project) => {
         const client = project.client;
-        const id = client?.id ?? client?.email ?? clientName(client);
+        const id = client?.id ?? client?.email ?? clientName(client, t("clients.clientFallback"));
         const existing = map.get(id);
         map.set(id, {
           id,
-          name: clientName(client),
-          email: client?.email ?? "No email on file",
+          name: clientName(client, t("clients.clientFallback")),
+          email: client?.email ?? t("clients.noEmail"),
           projects: (existing?.projects ?? 0) + 1,
           lastActive: existing?.lastActive ?? project.updatedAt,
         });
@@ -90,9 +92,9 @@ export default async function ClientsPage({
   return (
     <div className="space-y-6 p-6 lg:p-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Clients</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("clients.title")}</h1>
         <p className="text-sm text-muted-foreground">
-          {clients.length} clients across all projects
+          {t("clients.subtitle", { count: clients.length })}
         </p>
       </div>
 
@@ -105,7 +107,7 @@ export default async function ClientsPage({
           id="client-search"
           name="search"
           defaultValue={params?.search ?? ""}
-          placeholder="Search clients..."
+          placeholder={t("clients.searchPlaceholder")}
           className="pl-9"
         />
       </form>
@@ -116,15 +118,14 @@ export default async function ClientsPage({
           role="alert"
         >
           <CardContent className="p-4 text-sm">
-            Couldn&apos;t load clients.
+            {t("clients.loadError")}
           </CardContent>
         </Card>
       ) : clients.length === 0 ? (
         <Card className="border border-dashed border-border/70 bg-muted/20 shadow-none">
           <CardContent className="flex items-center gap-3 p-6 text-sm text-muted-foreground">
             <UsersRound className="h-5 w-5" aria-hidden="true" />
-            No clients found. Clients appear here when projects are connected to
-            them.
+            {t("clients.empty")}
           </CardContent>
         </Card>
       ) : (
@@ -151,12 +152,13 @@ export default async function ClientsPage({
                   <div className="flex items-center gap-1">
                     <FolderOpen className="h-3.5 w-3.5" aria-hidden="true" />
                     <span>
-                      {client.projects} project
-                      {client.projects !== 1 ? "s" : ""}
+                      {client.projects !== 1
+                        ? t("clients.projects", { count: client.projects })
+                        : t("clients.project", { count: client.projects })}
                     </span>
                   </div>
                   <div className="hidden sm:block">
-                    Last active {date(client.lastActive)}
+                    {t("clients.lastActive", { date: date(client.lastActive, t("clients.recently")) })}
                   </div>
                 </div>
               </CardContent>

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getErrorStateMessage } from "@/lib/utils";
 import { AlertCircle, CalendarDays, FileText, FolderOpen } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
 type Project = {
@@ -51,11 +52,11 @@ const progressByStatus: Record<string, number> = {
   CANCELLED: 0,
 };
 
-function date(value: string | Date | null | undefined) {
-  if (!value) return "No date";
+function date(value: string | Date | null | undefined, emptyLabel: string) {
+  if (!value) return emptyLabel;
   const parsed = value instanceof Date ? value : new Date(value);
   return Number.isNaN(parsed.getTime())
-    ? "No date"
+    ? emptyLabel
     : parsed.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
@@ -68,6 +69,7 @@ function money(value: Invoice["amount"], currency = "USD") {
 }
 
 export default async function ClientHomepage() {
+  const t = await getTranslations("client");
   const [projectResult, invoiceResult] = await Promise.all([
     listProjects({ limit: 4, page: 1, sort: "desc", sortBy: "updated_at" }),
     listInvoices(),
@@ -85,9 +87,9 @@ export default async function ClientHomepage() {
   return (
     <div className="space-y-6 p-6 lg:p-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("homepage.welcome")}</h1>
         <p className="text-sm text-muted-foreground">
-          Here&apos;s a summary of your active projects and billing.
+          {t("homepage.summary")}
         </p>
       </div>
 
@@ -108,19 +110,19 @@ export default async function ClientHomepage() {
                 className="h-4 w-4 text-muted-foreground"
                 aria-hidden="true"
               />
-              <CardTitle className="text-base">Active Projects</CardTitle>
+              <CardTitle className="text-base">{t("homepage.activeProjects")}</CardTitle>
             </div>
             <Link
               href="/client/projects"
               className="text-xs text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              View all
+              {t("common.viewAll")}
             </Link>
           </CardHeader>
           <CardContent className="space-y-4">
             {projects.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
-                No projects yet. Shared client projects will appear here.
+                {t("homepage.noProjects")}
               </div>
             ) : (
               projects.map((project) => {
@@ -160,13 +162,13 @@ export default async function ClientHomepage() {
                             className="h-3.5 w-3.5"
                             aria-hidden="true"
                           />
-                          {date(due ?? project.updatedAt)}
+                          {date(due ?? project.updatedAt, t("common.noDate"))}
                         </div>
                         <Badge
                           variant="outline"
                           className={`text-xs ${statusColors[project.status ?? ""] ?? statusColors.CANCELLED}`}
                         >
-                          {project.status ?? "ONBOARDING"}
+                          {t(`projectStatus.${project.status ?? "ONBOARDING"}`)}
                         </Badge>
                       </div>
                     </div>
@@ -185,19 +187,19 @@ export default async function ClientHomepage() {
                   className="h-4 w-4 text-muted-foreground"
                   aria-hidden="true"
                 />
-                <CardTitle className="text-base">Invoices</CardTitle>
+                <CardTitle className="text-base">{t("invoices.title")}</CardTitle>
               </div>
               <Link
                 href="/client/invoices"
                 className="text-xs text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                View all
+                {t("common.viewAll")}
               </Link>
             </CardHeader>
             <CardContent className="divide-y divide-border/50">
               {invoices.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
-                  No invoices yet.
+                  {t("homepage.noInvoices")}
                 </div>
               ) : (
                 invoices.slice(0, 3).map((invoice) => (
@@ -210,7 +212,7 @@ export default async function ClientHomepage() {
                         {invoice.title}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {date(invoice.due_date)}
+                        {date(invoice.due_date, t("common.noDate"))}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -221,7 +223,7 @@ export default async function ClientHomepage() {
                         variant="outline"
                         className={`px-1.5 py-0 text-[10px] ${invoiceStatus[invoice.status ?? ""] ?? invoiceStatus.DRAFT}`}
                       >
-                        {invoice.status ?? "DRAFT"}
+                        {t(`invoiceStatus.${invoice.status ?? "DRAFT"}`)}
                       </Badge>
                     </div>
                   </div>
@@ -232,7 +234,7 @@ export default async function ClientHomepage() {
 
           <Card className="border border-border/60 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Latest Delivery</CardTitle>
+              <CardTitle className="text-base">{t("homepage.latestDelivery")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div
@@ -242,12 +244,12 @@ export default async function ClientHomepage() {
                 <FolderOpen className="h-6 w-6 text-primary" />
               </div>
               <p className="text-sm font-medium">
-                {latestHandsoutProject?.title ?? "No deliveries yet"}
+                {latestHandsoutProject?.title ?? t("homepage.noDeliveries")}
               </p>
               <p className="text-xs text-muted-foreground">
                 {latestHandsoutProject
-                  ? "Project activity is synced from the backend."
-                  : "Shared deliverables will appear here."}
+                  ? t("homepage.activitySynced")
+                  : t("homepage.deliverablesAppear")}
               </p>
             </CardContent>
           </Card>
