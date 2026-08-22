@@ -35,7 +35,7 @@ export default function Navbar() {
   const navLinks = [
     { id: "features", name: t("navbar.features"), href: "#features" },
     { id: "pricing", name: t("navbar.pricing"), href: "#pricing" },
-    { id: "signIn", name: t("navbar.signIn"), href: "/login" },
+    { id: "signIn", name: t("navbar.signIn"), href: "/sign-in" },
   ];
 
   return (
@@ -101,7 +101,7 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-2">
             <LanguageToggle />
             <Link
-              href="/signup"
+              href="/sign-up"
               className="bg-neutral-900 hover:bg-neutral-800 text-white px-5 py-2 rounded-full font-medium transition-all shadow-sm active:scale-95 text-sm ring-2 ring-transparent focus-visible:ring-neutral-400"
             >
               {t("navbar.getStarted")}
@@ -149,7 +149,7 @@ export default function Navbar() {
             </Link>
           ))}
           <Link
-            href="/signup"
+            href="/sign-up"
             onClick={() => setIsOpen(false)}
             className="bg-neutral-900 text-white px-8 py-3.5 rounded-full font-medium transition-transform active:scale-95 shadow-sm text-lg mt-4"
           >

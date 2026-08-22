@@ -6,6 +6,7 @@ import {
     TIMEOUT_ERROR_KEY,
     withTimeout,
 } from "@/lib/action-timeout";
+import {provisionCurrentUser} from "@/services/auth-context";
 
 export type UpdateUserRoleResult =
     | { success: true }
@@ -31,6 +32,10 @@ export async function updateUserRole(
                 }
             }),
         )
+
+        // Write the DB row now — lazy provisioning via the API routes is a
+        // fallback, not the plan. Idempotent upsert, safe to retry.
+        await provisionCurrentUser(role === "freelancer" ? "FREELANCER" : "CLIENT")
 
         return {success: true}
     } catch (error) {

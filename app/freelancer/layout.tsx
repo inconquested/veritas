@@ -53,6 +53,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import LanguageToggle from "@/components/portal/LanguageToggle";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { useTranslations } from "next-intl";
 
@@ -302,6 +303,9 @@ export default function FreelancerLayout({
                 })}
             </BreadcrumbList>
           </Breadcrumb>
+          <div className="ml-auto">
+            <LanguageToggle />
+          </div>
         </header>
         {children}
       </SidebarInset>

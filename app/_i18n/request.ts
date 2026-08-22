@@ -16,5 +16,13 @@ export default getRequestConfig(async () => {
   const locale = resolveLocale(store.get(LOCALE_COOKIE)?.value);
   const messages = (await import(`./locales/${locale}.json`)).default;
 
-  return { locale, messages };
+  return {
+    locale,
+    messages,
+    onError: (error) => {
+      if (process.env.NODE_ENV !== 'production') console.warn('[i18n]', error.message);
+    },
+    getMessageFallback: ({ namespace, key }) =>
+      namespace ? `${namespace}.${key}` : key,
+  };
 });

@@ -43,8 +43,8 @@ export default function LanguageToggle({ variant = "default" }: Props) {
         disabled={pending}
         className={
           variant === "mobile"
-            ? "inline-flex items-center gap-2 rounded-full border border-neutral-200/70 bg-white px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:border-neutral-300 disabled:opacity-60"
-            : "inline-flex items-center gap-1.5 rounded-full border border-neutral-200/60 bg-white/70 px-2.5 py-1.5 text-[11px] font-semibold tracking-wide text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900 disabled:opacity-60"
+            ? "inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-60"
+            : "inline-flex items-center gap-1.5 rounded-full border border-border bg-background/70 px-2.5 py-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground transition-colors hover:text-foreground disabled:opacity-60"
         }
       >
         <Globe className="size-3.5" strokeWidth={1.75} aria-hidden />
@@ -53,7 +53,7 @@ export default function LanguageToggle({ variant = "default" }: Props) {
       <DropdownMenuContent
         align="end"
         sideOffset={8}
-        className="min-w-[10rem] rounded-xl border-neutral-200/70 bg-white/95 p-1.5 backdrop-blur-xl"
+        className="min-w-[10rem] rounded-xl p-1.5 backdrop-blur-xl"
       >
         {locales.map((code) => {
           const item = LABELS[code];
@@ -62,7 +62,7 @@ export default function LanguageToggle({ variant = "default" }: Props) {
             <DropdownMenuItem
               key={code}
               onSelect={() => onSelect(code)}
-              className="flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 text-sm font-medium text-neutral-700 focus:bg-neutral-100 focus:text-neutral-900"
+              className="flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 text-sm font-medium"
             >
               <span>{item.name}</span>
               {isActive ? (

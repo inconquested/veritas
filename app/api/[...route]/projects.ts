@@ -68,10 +68,10 @@ function errorKey(error: unknown, fallback: string) {
 function fail(c: Context, error: unknown, fallback: string, status = 400) {
   const auth = authErrorResponse(error);
   if (auth) return c.json(auth.body, auth.status as never);
-  console.error("Projects API error", {
-    fallback,
-    message: error instanceof Error ? error.message : String(error),
-  });
+  console.error(
+    `Projects API error [${fallback}]:`,
+    error instanceof Error ? (error.stack ?? error.message) : String(error),
+  );
   return c.json(
     { success: false, errorKey: errorKey(error, fallback) },
     status as never,

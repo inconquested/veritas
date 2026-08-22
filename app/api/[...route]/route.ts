@@ -114,8 +114,9 @@ const routes = app
   .route("/invoices", invoicesApp)
   .route("/escrow", escrowApp);
 
-export const runtime = "edge";
-
+// Node runtime required: @prisma/adapter-pg uses node-postgres (TCP), which
+// cannot load in the edge runtime — every DB route 500s there and the lazy
+// user provisioning in auth-context never runs.
 export const GET = handle(app);
 export const POST = handle(app);
 export const PUT = handle(app);

@@ -113,6 +113,10 @@ export default async function ProjectDetailPage({
   const project = result.project as Project;
   const milestones = toArray<{ due_date?: string | Date | null }>(
     project.milestones,
+  ).sort(
+    (first, second) =>
+      new Date(first.due_date ?? 0).getTime() -
+      new Date(second.due_date ?? 0).getTime(),
   );
   const invoices = toArray(project.invoices);
   const handsouts = toArray(project.handsouts);

@@ -61,7 +61,7 @@ export default function CTASection() {
           className="flex gap-4 mt-1 sm:mt-2"
         >
           <Link
-            href="/signup"
+            href="/sign-up"
             className="bg-neutral-900 hover:bg-neutral-800 text-white px-6 sm:px-7 py-3 sm:py-3.5 rounded-full font-medium text-sm transition-all shadow-[0_18px_36px_-18px_rgba(15,23,42,0.5)] active:scale-[0.98]"
           >
             {t("ctaSection.createPortal")}

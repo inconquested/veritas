@@ -105,7 +105,7 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className="space-y-6 p-6 lg:p-8">
+    <div className="flex min-h-full flex-col gap-6 p-6 lg:p-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -176,37 +176,43 @@ export default function ProjectsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {projects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+            <ProjectCard
+              key={project.id}
+              project={project}
+              href={`/freelancer/projects/${project.id}`}
+            />
           ))}
         </div>
       )}
-      <Pagination className="justify-end">
-        <PaginationContent>
-          <PaginationItem>
-            <PaginationPrevious
-              href={buildPageHref(page - 1, search || undefined)}
-              aria-disabled={!hasPreviousPage}
-              className={
-                !hasPreviousPage ? "pointer-events-none opacity-50" : undefined
-              }
-            />
-          </PaginationItem>
-          <PaginationItem>
-            <span className="px-3 text-sm text-muted-foreground">
-              {loading ? t("projects.loading") : t("projects.page", { page })}
-            </span>
-          </PaginationItem>
-          <PaginationItem>
-            <PaginationNext
-              href={buildPageHref(page + 1, search || undefined)}
-              aria-disabled={!hasNextPage}
-              className={
-                !hasNextPage ? "pointer-events-none opacity-50" : undefined
-              }
-            />
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
+      <div className="mt-auto flex h-12 shrink-0 items-center justify-end">
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href={buildPageHref(page - 1, search || undefined)}
+                aria-disabled={!hasPreviousPage}
+                className={
+                  !hasPreviousPage ? "pointer-events-none opacity-50" : undefined
+                }
+              />
+            </PaginationItem>
+            <PaginationItem>
+              <span className="px-3 text-sm text-muted-foreground">
+                {loading ? t("projects.loading") : t("projects.page", { page })}
+              </span>
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationNext
+                href={buildPageHref(page + 1, search || undefined)}
+                aria-disabled={!hasNextPage}
+                className={
+                  !hasNextPage ? "pointer-events-none opacity-50" : undefined
+                }
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      </div>
     </div>
   );
 }

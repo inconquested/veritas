@@ -52,6 +52,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import LanguageToggle from "@/components/portal/LanguageToggle";
 
 export default function ClientLayout({
   children,
@@ -271,6 +272,9 @@ export default function ClientLayout({
                 })}
             </BreadcrumbList>
           </Breadcrumb>
+          <div className="ml-auto">
+            <LanguageToggle />
+          </div>
         </header>
         {children}
       </SidebarInset>

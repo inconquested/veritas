@@ -41,7 +41,11 @@ export default async function HandsoutsPage({
   if (!result.success) notFound();
 
   const project = result.project as Project;
-  const handsouts = toArray<Handsout>(project.handsouts);
+  const handsouts = toArray<Handsout>(project.handsouts).sort(
+    (first, second) =>
+      new Date(second.createdAt ?? second.created_at ?? 0).getTime() -
+      new Date(first.createdAt ?? first.created_at ?? 0).getTime(),
+  );
 
   return (
     <div className="space-y-6 p-6 lg:p-8">
@@ -70,11 +74,21 @@ export default async function HandsoutsPage({
                 key={handsout.id}
                 className="group border border-border/60 shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
               >
-                <div className="flex h-32 items-center justify-center rounded-t-xl border-b border-border/40 bg-muted/50">
-                  <Icon
-                    className="h-10 w-10 text-muted-foreground/40"
-                    aria-hidden="true"
-                  />
+                <div className="flex h-32 items-center justify-center overflow-hidden rounded-t-xl border-b border-border/40 bg-muted/50">
+                  {handsout.thumb_url ? (
+                    // ponytail: plain <img> — next/image would need Cloudinary domain config
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={handsout.thumb_url}
+                      alt={handsout.title}
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <Icon
+                      className="h-10 w-10 text-muted-foreground/40"
+                      aria-hidden="true"
+                    />
+                  )}
                 </div>
                 <CardContent className="space-y-2 p-4">
                   <div className="flex items-start justify-between gap-2">

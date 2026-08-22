@@ -167,6 +167,7 @@ export class ProjectService {
           },
           milestones: true,
           invoices: true,
+          handsouts: true,
         },
       });
     } catch (error) {

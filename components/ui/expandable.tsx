@@ -14,12 +14,14 @@ import {
   TargetAndTransition,
   useMotionValue,
   useSpring,
+  useTransform,
 } from "motion/react";
 import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 
-const springConfig = { stiffness: 200, damping: 20, bounce: 0.2 };
+// Low damping = visible overshoot (bounce) on expand/collapse.
+const springConfig = { stiffness: 200, damping: 18, mass: 0.87 };
 
 interface ExpandableContextType {
   isExpanded: boolean; // Indicates whether the component is expanded
@@ -44,7 +46,7 @@ const ExpandableContext = createContext<ExpandableContextType>({
   toggleExpand: () => {},
   expandDirection: "vertical", // 'vertical' | 'horizontal' | 'both' // Direction of expansion
   expandBehavior: "replace", // How the expansion affects surrounding content
-  transitionDuration: 0.3, // Duration of the expansion/collapse animation
+  transitionDuration: 0.35, // Duration of the expansion/collapse animation
   easeType: "easeInOut" as const, // Easing function for the animation
   initialDelay: 0,
 });
@@ -100,7 +102,7 @@ const Expandable = React.forwardRef<HTMLDivElement, ExpandableProps>(
       children,
       expanded,
       onToggle,
-      transitionDuration = 0.3,
+      transitionDuration = 0.35,
       easeType = "easeInOut" as const,
       expandDirection = "vertical",
       expandBehavior = "replace",
@@ -280,7 +282,7 @@ const ExpandableContent = React.forwardRef<
       preset,
       animateIn,
       animateOut,
-      stagger = false,
+      stagger = true,
       staggerChildren = 0.1,
       keepMounted = false,
       ...props
@@ -294,14 +296,13 @@ const ExpandableContent = React.forwardRef<
     const animatedHeight = useMotionValue(0);
     // useSpring applies a spring animation to the height value
     const smoothHeight = useSpring(animatedHeight, springConfig);
+    // Bouncy springs overshoot below 0; negative height is invalid CSS and
+    // would flash the content open, so clamp at 0.
+    const clampedHeight = useTransform(smoothHeight, (v) => Math.max(0, v));
 
     useEffect(() => {
       // Animate the height based on whether the content is expanded or collapsed
-      if (isExpanded) {
-        animatedHeight.set(measuredHeight);
-      } else {
-        animatedHeight.set(0);
-      }
+      animatedHeight.set(isExpanded ? measuredHeight : 0);
     }, [isExpanded, measuredHeight, animatedHeight]);
 
     const animationProps = getAnimationProps(preset, animateIn, animateOut);
@@ -311,7 +312,7 @@ const ExpandableContent = React.forwardRef<
       <motion.div
         ref={ref}
         style={{
-          height: smoothHeight,
+          height: clampedHeight,
           overflow: "hidden",
         }}
         transition={{ duration: transitionDuration, ease: easeType }}
@@ -383,8 +384,8 @@ const ExpandableCard = React.forwardRef<HTMLDivElement, ExpandableCardProps>(
     {
       children,
       className = "",
-      collapsedSize = { width: 320, height: 211 },
-      expandedSize = { width: 480, height: undefined },
+      collapsedSize = {},
+      expandedSize = {},
       hoverToExpand = false,
       expandDelay = 0,
       collapseDelay = 0,
@@ -398,6 +399,14 @@ const ExpandableCard = React.forwardRef<HTMLDivElement, ExpandableCardProps>(
     // Use useMeasure hook to get the dimensions of the content
     const [measureRef, { width, height }] = useMeasure();
 
+    // Fixed sizes are opt-in: without them the card is natural w-full/h-full
+    // and only ExpandableContent animates (no forced 320x211 deformation).
+    const hasFixedSize =
+      collapsedSize.width != null ||
+      collapsedSize.height != null ||
+      expandedSize.width != null ||
+      expandedSize.height != null;
+
     // Create motion values for width and height
     const animatedWidth = useMotionValue(collapsedSize.width || 0);
     const animatedHeight = useMotionValue(collapsedSize.height || 0);
@@ -408,15 +417,17 @@ const ExpandableCard = React.forwardRef<HTMLDivElement, ExpandableCardProps>(
 
     // Effect to update the animated dimensions when expansion state changes
     useEffect(() => {
+      if (!hasFixedSize) return;
       if (isExpanded) {
-        animatedWidth.set(expandedSize.width || width);
-        animatedHeight.set(expandedSize.height || height);
+        animatedWidth.set(expandedSize.width ?? width);
+        animatedHeight.set(expandedSize.height ?? height);
       } else {
-        animatedWidth.set(collapsedSize.width || width);
-        animatedHeight.set(collapsedSize.height || height);
+        animatedWidth.set(collapsedSize.width ?? width);
+        animatedHeight.set(collapsedSize.height ?? height);
       }
     }, [
       isExpanded,
+      hasFixedSize,
       collapsedSize,
       expandedSize,
       width,
@@ -442,43 +453,29 @@ const ExpandableCard = React.forwardRef<HTMLDivElement, ExpandableCardProps>(
     return (
       <motion.div
         ref={ref}
-        className={cn("cursor-pointer", className)}
-        style={{
-          // Set width and height based on expansion direction
-          width:
-            expandDirection === "vertical" ? collapsedSize.width : smoothWidth,
-          height:
-            expandDirection === "horizontal"
-              ? collapsedSize.height
-              : smoothHeight,
-        }}
+        className={className}
+        style={
+          hasFixedSize
+            ? {
+                width:
+                  expandDirection === "vertical"
+                    ? (collapsedSize.width ?? "100%")
+                    : smoothWidth,
+                height:
+                  expandDirection === "horizontal"
+                    ? (collapsedSize.height ?? "auto")
+                    : smoothHeight,
+              }
+            : undefined
+        }
         transition={springConfig}
         onHoverStart={handleHover}
         onHoverEnd={handleHoverEnd}
         {...props}
       >
-        <div
-          className={cn(
-            "grid grid-cols-1 rounded-lg sm:rounded-xl md:rounded-[2rem]",
-            "shadow-[inset_0_0_1px_1px_hsl(var(--border)/0.3)] dark:shadow-[inset_0_0_1px_1px_hsl(var(--border)/0.5)]",
-            "sm:shadow-[inset_0_0_2px_1px_hsl(var(--border)/0.3)] dark:sm:shadow-[inset_0_0_2px_1px_hsl(var(--border)/0.5)]",
-            "ring-1 ring-border/50",
-            "max-w-[calc(100%-1rem)] sm:max-w-[calc(100%-2rem)] md:max-w-[calc(100%-4rem)]",
-            "mx-auto w-full",
-            "transition-all duration-300 ease-in-out",
-          )}
-        >
-          {/* Nested divs purely for styling and layout (the shadow ring around the card) */}
-          <div className="grid grid-cols-1 rounded-lg sm:rounded-xl md:rounded-[2rem] p-1 sm:p-1.5 md:p-2 shadow-md">
-            <div className="rounded-md sm:rounded-lg md:rounded-3xl bg-white dark:bg-muted p-2 sm:p-3 md:p-4 shadow-xl ring-1 ring-border/50">
-              <div className="w-full h-full overflow-hidden">
-                {/* Ref for measuring content dimensions (so we can let framer know to animate into the dimensions) */}
-                <div ref={measureRef} className="flex flex-col h-full">
-                  {children}
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Ref for measuring content dimensions (so we can let framer know to animate into the dimensions) */}
+        <div ref={measureRef} className="flex h-full flex-col">
+          {children}
         </div>
       </motion.div>
     );

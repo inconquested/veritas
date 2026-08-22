@@ -6,8 +6,8 @@ import { Prisma } from "@/generated/prisma/client";
  * Identity + authorization core shared by every CRUD path (projects, invoices).
  *
  * The app authenticates with Clerk but authorizes against our own `User` rows.
- * Nothing else provisions those rows — onboarding only writes Clerk metadata —
- * so this module lazily upserts the DB user (and a FreelancerProfile for
+ * Onboarding provisions the row via `provisionCurrentUser`; this module also
+ * lazily upserts the DB user (and a FreelancerProfile for
  * freelancers) from the Clerk session the first time it is needed. Every
  * ownership check resolves the acting user here, so a signed-in caller can only
  * touch the projects/invoices they are a party to.
