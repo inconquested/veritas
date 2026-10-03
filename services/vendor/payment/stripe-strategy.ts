@@ -5,6 +5,23 @@ import {
 import Stripe from "stripe";
 import type { PaymentGatewayStrategy } from "./constants";
 
+/**
+ * Absolute `expires_at` (unix seconds) derived from the invoice due date.
+ * Past-due or missing dates clamp to a viable future window so Stripe never
+ * receives 0/negative timestamps.
+ */
+export function stripeExpiresAtFor(
+  due_date?: Date | string | number | null,
+  now: Date = new Date(),
+): number {
+  const nowSec = Math.floor(now.getTime() / 1000);
+  if (due_date == null) return nowSec + 24 * 3600;
+  const due = due_date instanceof Date ? due_date : new Date(due_date);
+  if (Number.isNaN(due.getTime())) return nowSec + 24 * 3600;
+  const target = Math.floor(due.getTime() / 1000);
+  return target > nowSec ? target : nowSec + 30 * 60;
+}
+
 export class StripeStrategy implements PaymentGatewayStrategy {
   private readonly stripe: Stripe;
 
@@ -56,7 +73,7 @@ export class StripeStrategy implements PaymentGatewayStrategy {
           projectId: input.project_id ?? "",
         },
         client_reference_id: input.id ?? "",
-        expires_at: this.DateDiffToSecondEpoch(input.due_date),
+        expires_at: stripeExpiresAtFor(input.due_date),
         payment_intent_data: input.destination_account_id
           ? {
               application_fee_amount: 0,
@@ -111,12 +128,5 @@ export class StripeStrategy implements PaymentGatewayStrategy {
       process.env.NEXT_PUBLIC_SITE_URL ??
       "http://localhost:3000";
     return configured.replace(/\/$/, "");
-  }
-
-  private DateDiffToSecondEpoch(date: Date) {
-    const now = new Date()
-
-    const diff = date.getTime() - now.getTime();
-    return Math.floor(diff / 1000);
   }
 }

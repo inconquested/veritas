@@ -1,6 +1,9 @@
 import { listInvoices } from "@/actions/invoices";
+import { getInvoicePdfHtml } from "@/actions/invoice-pdf";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import InvoicePdfButton from "@/components/invoice-pdf-button";
+import PayoutPanel from "@/components/payout-panel";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
@@ -45,6 +48,7 @@ export default async function BillingInvoicesSlot() {
   const result = await listInvoices();
 
   return (
+    <div className="space-y-4">
     <Card className="border border-border/60 shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div>
@@ -104,6 +108,9 @@ export default async function BillingInvoicesSlot() {
                     >
                       {invoice.status ?? "DRAFT"}
                     </Badge>
+                    <InvoicePdfButton
+                      fetchHtml={getInvoicePdfHtml.bind(null, invoice.id)}
+                    />
                   </div>
                 </div>
               ))}
@@ -111,5 +118,7 @@ export default async function BillingInvoicesSlot() {
         )}
       </CardContent>
     </Card>
+    <PayoutPanel />
+    </div>
   );
 }

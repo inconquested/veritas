@@ -13,6 +13,7 @@ import {
   type EscrowStore,
   type EscrowStrategy,
 } from "./vendor/payment/escrow-core";
+import { validateInvoiceTransition } from "./invoice-transition";
 
 function toRecord(row: {
   invoiceId: string;
@@ -102,6 +103,16 @@ export class PrismaEscrowStore implements EscrowStore {
 
         const invoiceStatus = invoiceStatusFor(to);
         if (invoiceStatus) {
+          const currentInvoice = await tx.invoice.findUnique({
+            where: { id: cmd.invoiceId },
+            select: { status: true },
+          });
+          if (currentInvoice && currentInvoice.status !== invoiceStatus) {
+            validateInvoiceTransition(
+              currentInvoice.status as string,
+              invoiceStatus,
+            );
+          }
           await tx.invoice.update({
             where: { id: cmd.invoiceId },
             data: { status: invoiceStatus as never },
@@ -152,6 +163,28 @@ export class EscrowService {
 
   getState(invoiceId: string) {
     return this.escrow.getState(invoiceId);
+  }
+
+  /** Whitelisted audit events for timelines (portal publik + dashboard). */
+  async getEvents(invoiceId: string) {
+    const escrow = await this.db.escrow.findUnique({
+      where: { invoiceId },
+      select: {
+        events: {
+          select: {
+            id: true,
+            action: true,
+            actorRole: true,
+            fromStatus: true,
+            toStatus: true,
+            createdAt: true,
+            metadata: true,
+          },
+          orderBy: { createdAt: "asc" },
+        },
+      },
+    });
+    return escrow?.events ?? [];
   }
 
   /** Opens escrow from the invoice's own amount/currency/provider. */

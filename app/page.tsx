@@ -9,7 +9,10 @@ export default async function Home() {
     return <PortalAnimation />
   }
 
-  const role = user.publicMetadata?.role
+  // F7 wave integrasi: role HANYA dari privateMetadata (server-only).
+  // Akun lama yang masih simpan role di publicMetadata wajib re-onboarding
+  // (lihat docs/OPERATIONS.md § backfill) — spoof publik = onboarding ulang.
+  const role = user.privateMetadata?.role
   if(!role) {
     redirect('/onboarding')
   }

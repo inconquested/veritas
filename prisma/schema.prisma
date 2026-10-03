@@ -58,6 +58,7 @@ enum InvoiceStatus {
   PAID
   OVERDUE
   REFUNDED
+  CANCELLED
 }
 
 enum EscrowStatus {
@@ -78,6 +79,12 @@ model FreelancerProfile {
   xenditAccountId   String?
   midtransAccountId String?
 
+  // F11 wave integrasi: profil publik (bio/skill/rate/WA).
+  bio        String? @db.Text
+  skills     String? @db.Text
+  hourlyRate BigInt?
+  waNumber   String? @db.VarChar(32)
+
   user     User      @relation("UserProfile", fields: [userId], references: [id])
   invoices Invoice[]
 }
@@ -91,6 +98,7 @@ model User {
   instanceName String?  @db.VarChar(50)
   lastName     String?  @db.VarChar(50)
   imageUrl     String?  @db.VarChar(255)
+  phone        String?  @db.VarChar(32) // F3 wave integrasi: nomor WA klien untuk reminder
   createdAt    DateTime @default(now()) @db.Timestamp(6)
   updatedAt    DateTime @default(now()) @db.Timestamp(6)
 
@@ -106,7 +114,7 @@ model Project {
   id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   title            String        @db.VarChar(255)
   slug             String        @unique
-  access_key       String
+  access_key       String        @default(dbgenerated("gen_random_uuid()"))
   description      String?       @db.Text
   status           ProjectStatus @default(ONBOARDING)
   thumb_url        String?       @db.VarChar(255)
@@ -119,11 +127,37 @@ model Project {
   freelancerId String @db.Uuid
   freelancer   User   @relation("FreelancerProjects", fields: [freelancerId], references: [id])
 
+  // F12 wave integrasi: alihkan project antar workspace.
+  workspaceId String? @db.Uuid
+
   milestones Milestone[]
   invoices   Invoice[]
   handsouts  Handsout[]
+  comments   Comment[]
+
+  shareTokens ProjectShareToken[]
+
+  // F5/F6 1-1 balik (Contract/Review pegang FK unique + relation).
+  contract Contract?
+  review   Review?
 
   @@index([id])
+}
+
+// Revocable per-link magic-link token. Revoke = delete the row; a missing or
+// past-expiresAt token resolves to 404 so nothing leaks about the project.
+model ProjectShareToken {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  project_id String    @db.Uuid
+  token      String    @unique @default(dbgenerated("gen_random_uuid()"))
+  expiresAt  DateTime? @db.Timestamp(6)
+  scope      String    @default("view") @db.VarChar(32)
+  createdAt  DateTime  @default(now()) @db.Timestamp(6)
+
+  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@index([project_id])
+  @@index([token])
 }
 
 model Milestone {
@@ -157,10 +191,18 @@ model Invoice {
 
   providerTxId String?
 
+  // F4 — termin & penomoran lokal. milestone_id scalar tanpa relation agar
+  // model Milestone (F0-F2) tidak berubah. number unik per freelancer
+  // (komposit, nullable agar backfill baris lama lolos).
+  milestone_id String? @db.Uuid
+  number       String? @db.Text
+  type         String  @default("FINAL") @db.VarChar(16) // DP | TERMIN | FINAL | RETAINER
+
   project    Project           @relation(fields: [project_id], references: [id])
   freelancer FreelancerProfile @relation(fields: [freelancerId], references: [id])
   escrow     Escrow?
 
+  @@unique([freelancerId, number])
   @@index([id])
   @@index([project_id])
 }
@@ -213,8 +255,299 @@ model Handsout {
   createdAt   DateTime @default(now()) @db.Timestamp(6)
   updatedAt   DateTime @default(now()) @db.Timestamp(6)
 
+  // F5 — approval handsout: SUBMIT→APPROVE/REJECT naikkan version.
+  status  String @default("DRAFT")
+  version Int    @default(1)
+
   project Project @relation(fields: [project_id], references: [id])
 
   @@index([id])
   @@index([project_id])
+}
+
+// F4 — Payout manual v1. freelancerId scalar tanpa relation agar model
+// FreelancerProfile (F0-F2) tidak berubah. idempotencyKey unik = anti
+// double-submit: request ganda dengan key sama kembali ke baris yang sama.
+model Payout {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  freelancerId   String   @db.Uuid
+  amount         BigInt
+  bank           String   @db.VarChar(32)
+  accountNo      String   @db.VarChar(64)
+  status         String   @default("QUEUED") @db.VarChar(16) // QUEUED→PROCESSING→DONE/FAILED
+  extRef         String?  @db.VarChar(128)
+  idempotencyKey String?  @unique @db.VarChar(200)
+  createdAt      DateTime @default(now()) @db.Timestamp(6)
+  updatedAt      DateTime @default(now()) @updatedAt @db.Timestamp(6)
+
+  @@index([freelancerId])
+  @@index([status])
+}
+
+// F2 — Dispute yang Bisa Dipakai. Evidence thread per project/milestone/
+// handsout; attachments are Cloudinary URLs uploaded via media-service.
+model Comment {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  project_id   String   @db.Uuid
+  milestone_id String?  @db.Uuid
+  handsout_id  String?  @db.Uuid
+  authorId     String
+  authorRole   String
+  body         String   @db.Text
+  attachments  String[] @default([])
+  createdAt    DateTime @default(now()) @db.Timestamp(6)
+
+  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@index([project_id])
+  @@index([milestone_id])
+  @@index([handsout_id])
+}
+
+// F2 — one dispute per escrow (escrowId unique). Status flow:
+// OPEN → NEGOTIATING → RESOLVED_REFUND / RESOLVED_RELEASE / ESCALATED.
+// Terminal resolve routes through EscrowService.transition (dispute-service).
+model Dispute {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  escrowId        String    @unique
+  reason          String    @db.Text
+  requestedAmount BigInt?
+  status          String    @default("OPEN")
+  deadlineAt      DateTime  @db.Timestamp(6)
+  createdAt       DateTime  @default(now()) @db.Timestamp(6)
+  updatedAt       DateTime  @default(now()) @updatedAt @db.Timestamp(6)
+
+  @@index([status])
+}
+
+// ── F5 Proposal → Kontrak → Project ─────────────────────────────────────
+// Proposal tanpa project_id (belum jadi project saat dikirim).
+// approveProposal (wave fitur) → create Project + Milestone + Invoice DP.
+model Proposal {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  freelancerId String
+  clientName   String
+  items        Json?
+  total        BigInt
+  status       String    @default("DRAFT") // DRAFT→SENT→APPROVED→REJECTED
+  expiresAt    DateTime? @db.Timestamp(6)
+
+  @@index([freelancerId])
+  @@index([status])
+}
+
+// 1-1 ke Project (project_id unique). E-sign v1 = timestamp + hash body.
+model Contract {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  project_id         String    @unique @db.Uuid
+  body               String    @db.Text
+  freelancerSignedAt DateTime? @db.Timestamp(6)
+  clientSignedAt     DateTime? @db.Timestamp(6)
+  bodyHash           String?
+  pdfUrl             String?
+
+  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+}
+
+// CRM mini: kanban Baru→Nego→Deal→Kalah (stage = String bebas).
+model Lead {
+  id           String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  freelancerId String
+  name         String
+  contact      String?
+  source       String?
+  stage        String  @default("BARU")
+  notes        String? @db.Text
+
+  @@index([freelancerId])
+  @@index([stage])
+}
+
+// ── F6 Review + Retainer + Expense ──────────────────────────────────────
+// Review hanya valid jika invoice PAID + escrow RELEASED (cek di service).
+model Review {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  project_id  String    @unique @db.Uuid
+  rating      Int
+  text        String?   @db.Text
+  verifiedAt  DateTime? @db.Timestamp(6)
+
+  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+}
+
+model Retainer {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  project_id  String   @db.Uuid
+  monthlyFee  BigInt
+  nextRunAt   DateTime @db.Timestamp(6)
+  active      Boolean  @default(true)
+
+  @@index([project_id])
+  @@index([nextRunAt])
+}
+
+model Expense {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  freelancerId String
+  label        String
+  amount       BigInt
+  date         DateTime  @db.Timestamp(6)
+  receiptUrl   String?
+  project_id   String?   @db.Uuid
+
+  @@index([freelancerId])
+  @@index([project_id])
+}
+
+// ── F9 Kolaborasi & File ────────────────────────────────────────────────
+model Task {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  project_id   String    @db.Uuid
+  milestone_id String?   @db.Uuid
+  title        String
+  status       String    @default("TODO") // TODO→DOING→REVIEW→DONE
+  assignee     String?
+  due          DateTime? @db.Timestamp(6)
+
+  @@index([project_id])
+  @@index([milestone_id])
+  @@index([status])
+}
+
+// Versi file per handsout/task (parent polimorfik via parentType+parentId).
+model Attachment {
+  id         String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  parentType String
+  parentId   String
+  version    Int    @default(1)
+  hash       String?
+  uploader   String?
+  note       String?
+  url        String
+
+  @@index([parentType, parentId])
+}
+
+// Activity feed non-uang per project (pattern reuse EscrowEvent).
+model ActivityEvent {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  project_id String   @db.Uuid
+  actorId    String?
+  action     String
+  metadata   Json?
+  createdAt  DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([project_id])
+}
+
+// ── F10 Waktu ───────────────────────────────────────────────────────────
+model TimeEntry {
+  id           String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  project_id   String  @db.Uuid
+  taskId       String? @db.Uuid
+  freelancerId String
+  minutes      Int
+  status       String  @default("DRAFT") // DRAFT→APPROVED→REJECTED→INVOICED
+  rate         BigInt?
+
+  @@index([project_id])
+  @@index([freelancerId])
+  @@index([status])
+}
+
+// ── F11 Growth ──────────────────────────────────────────────────────────
+model ServicePackage {
+  id           String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  freelancerId String
+  title        String
+  price        BigInt
+  description  String? @db.Text
+  active       Boolean @default(true)
+
+  @@index([freelancerId])
+}
+
+model Referral {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code       String  @unique
+  referrerId String
+  converted  Boolean @default(false)
+
+  @@index([referrerId])
+}
+
+model Coupon {
+  id         String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code       String @unique
+  percentOff Int?
+  amountOff  BigInt?
+  maxUses    Int?
+  usedCount  Int    @default(0)
+}
+
+// ── F12 Ops Studio ──────────────────────────────────────────────────────
+model Workspace {
+  id   String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name String
+  plan String @default("FREE")
+}
+
+model WorkspaceMember {
+  id          String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId String @db.Uuid
+  userId      String @db.Uuid
+  role        String @default("STAFF")
+
+  @@index([workspaceId])
+  @@index([userId])
+}
+
+model ClientCompany {
+  id             String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String
+  billingContact String?
+}
+
+model Ticket {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  project_id String    @db.Uuid
+  severity   String    @default("NORMAL")
+  slaDue     DateTime? @db.Timestamp(6)
+  status     String    @default("OPEN")
+  // F12 wave integrasi: atribusi tiket langsung ke staff, bukan via project.
+  assignee   String?
+
+  @@index([project_id])
+  @@index([status])
+}
+
+model HandoverNote {
+  id         String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  project_id String @db.Uuid
+  title      String
+  body       String @db.Text
+  role       String @default("ALL")
+
+  @@index([project_id])
+}
+
+// ── Wave integrasi (pemilik schema wave ini) ────────────────────────────
+// Append-only: model/fitur baru di luar daftar ini DILARANG wave ini.
+
+// Dedupe kiriman notif lintas isolate/restart (ganti Map in-memory F3).
+model NotifyLog {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  idempotencyKey String   @unique
+  template       String   @db.VarChar(64)
+  sentAt         DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([template])
+}
+
+// Override setting per freelancer (fallback env bila baris tak ada).
+model FreelancerSetting {
+  id               String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  freelancerId     String @unique
+  autoReleaseDays  Int    @default(14)
+  reminderChannel  String @default("both") @db.VarChar(16)
 }

@@ -27,7 +27,9 @@ export async function updateUserRole(
         // the onboarding screen can recover instead of hanging on a slow call.
         await withTimeout(
             client.users.updateUserMetadata(userId, {
-                publicMetadata: {
+                // F7 wave integrasi: role HANYA di privateMetadata (server-only,
+                // tidak terbaca/tidak bisa di-spoof dari client JS).
+                privateMetadata: {
                     role
                 }
             }),

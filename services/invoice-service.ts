@@ -11,6 +11,7 @@ import { StripeStrategy } from "./vendor/payment/stripe-strategy";
 import { PaypalStrategy } from "./vendor/payment/paypal-strategy";
 import { XenditStrategy } from "./vendor/payment/xendit-strategy";
 import { MidtransStrategy } from "./vendor/payment/midtrans-strategy";
+import { validateInvoiceTransition } from "./invoice-transition";
 
 const invoiceInclude = {
   project: {
@@ -74,13 +75,45 @@ export class InvoiceService {
       const storedInvoice = await this.db.invoice.findUnique({
         where: { id: input.id },
       });
+      const resolvedDueDate =
+        input.due_date ?? (storedInvoice as { due_date?: Date } | null)?.due_date;
+      if (
+        resolvedDueDate != null &&
+        new Date(resolvedDueDate).getTime() < Date.now()
+      ) {
+        return {
+          success: false,
+          errorMessage: "errors.invoice.past_due",
+          errorKey: "errors.invoice.past_due",
+        };
+      }
+
+      // Guard the SENT write below: never charge an invoice that cannot
+      // legally become SENT (e.g. already PAID/REFUNDED).
+      if ((storedInvoice as { status?: string } | null)?.status) {
+        try {
+          validateInvoiceTransition(
+            (storedInvoice as { status: string }).status,
+            "SENT",
+          );
+        } catch {
+          return {
+            success: false,
+            errorMessage: "errors.invoice.bad_transition",
+            errorKey: "errors.invoice.bad_transition",
+          };
+        }
+      }
+
       const resolvedInput: ChargeInvoiceInput = {
         ...input,
         project_id: input.project_id ?? storedInvoice?.project_id,
+        due_date: (resolvedDueDate ?? input.due_date) as ChargeInvoiceInput["due_date"],
         payment_method:
           input.payment_method ??
           (storedInvoice?.payment_method as
-            ChargeInvoiceInput["payment_method"] | undefined),
+            | ChargeInvoiceInput["payment_method"]
+            | undefined),
       };
 
       if (!resolvedInput.project_id) {
@@ -233,6 +266,20 @@ export class InvoiceService {
     invoiceId: string,
     input: Partial<ChargeInvoiceInput>,
   ) {
+    if (input.status !== undefined) {
+      const current = await this.db.invoice.findUnique({
+        where: { id: invoiceId },
+        select: { status: true },
+      });
+      if (!current) {
+        throw new Error("errors.invoice.not_found");
+      }
+      validateInvoiceTransition(
+        current.status as string,
+        input.status as string,
+      );
+    }
+
     const updateData: any = {};
 
     if (input.title !== undefined) updateData.title = input.title;

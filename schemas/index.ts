@@ -28,6 +28,7 @@ const InvoiceStatusSchema = z.enum([
   "PAID",
   "OVERDUE",
   "REFUNDED",
+  "CANCELLED",
 ]);
 
 const InvoiceCurrencySchema = z.enum([
@@ -198,6 +199,7 @@ export const PaymentResultSchema = z.object({
   checkoutUrl: z.url().optional(),
   redirectUrl: z.url().optional(),
   errorMessage: z.string().optional(),
+  errorKey: z.string().optional(),
   destinationAccountId: z.string().optional(),
 });
 

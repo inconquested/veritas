@@ -1,6 +1,8 @@
 import { listInvoices } from "@/actions/invoices";
 import { getEscrowState } from "@/actions/escrow";
+import { escrowService } from "@/services/escrow-service";
 import EscrowPanel from "@/components/ui/escrow-panel";
+import EscrowTimeline from "@/components/escrow-timeline";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ReceiptText } from "lucide-react";
@@ -77,6 +79,16 @@ export default async function ProjectInvoicesPage({
     ),
   );
 
+  // Audit timeline per invoice (same component as the public portal).
+  const escrowEvents = new Map<string, Awaited<ReturnType<typeof escrowService.getEvents>>>(
+    await Promise.all(
+      invoices.map(async (invoice) => {
+        const events = await escrowService.getEvents(invoice.id).catch(() => []);
+        return [invoice.id, events] as const;
+      }),
+    ),
+  );
+
   return (
     <div className="space-y-6 p-6 lg:p-8">
       <div>
@@ -141,6 +153,13 @@ export default async function ProjectInvoicesPage({
                 role="FREELANCER"
                 state={escrowStates.get(invoice.id) ?? null}
               />
+              {(escrowEvents.get(invoice.id) ?? []).length > 0 ? (
+                <Card className="border border-border/60 shadow-sm">
+                  <CardContent className="p-4">
+                    <EscrowTimeline events={escrowEvents.get(invoice.id) ?? []} />
+                  </CardContent>
+                </Card>
+              ) : null}
             </div>
           ))}
         </div>

@@ -55,9 +55,13 @@ const isDone = (milestone: Milestone) =>
 
 interface ProjectCardProps {
   project: ProjectWithRelations;
+  href?: string;
 }
 
-export function ProjectCard({ project }: ProjectCardProps) {
+export function ProjectCard({
+  project,
+  href,
+}: ProjectCardProps) {
   const t = useTranslations("project-list");
 
   const sortedMilestones = [...project.milestones].sort(
@@ -170,7 +174,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
             </div>
 
             <Link
-              href={`/freelancer/projects/${project.id}`}
+              href={href ?? `/freelancer/projects/${project.id}`}
               className="inline-flex w-fit items-center justify-center gap-2 rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
               {t("card-view")}

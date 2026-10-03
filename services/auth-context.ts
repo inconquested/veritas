@@ -53,11 +53,28 @@ export function authErrorResponse(error: unknown) {
   return null;
 }
 
-/** Clerk stores role as lowercase "client"/"freelancer" in publicMetadata. */
-function normalizeRole(value: unknown): AppRole {
+/**
+ * Clerk stores role as lowercase "client"/"freelancer".
+ * F7 wave integrasi: server reads privateMetadata ONLY (not exposed to
+ * client JS, tidak bisa di-spoof). Fallback publicMetadata DIHAPUS.
+ */
+export function normalizeRole(value: unknown): AppRole {
   return String(value ?? "").toUpperCase() === "FREELANCER"
     ? "FREELANCER"
     : "CLIENT";
+}
+
+/**
+ * Role claim from a Clerk user object. Reads privateMetadata ONLY.
+ * Unknown/absent -> null (caller treats as not-onboarded → /onboarding).
+ */
+export function roleFromMetadata(
+  user: {
+    publicMetadata?: { role?: unknown };
+    privateMetadata?: { role?: unknown };
+  } | null | undefined,
+): unknown {
+  return user?.privateMetadata?.role;
 }
 
 /**
@@ -67,7 +84,7 @@ function normalizeRole(value: unknown): AppRole {
  */
 export async function resolveClerkRole(): Promise<AppRole | null> {
   const clerkUser = await currentUser();
-  const raw = clerkUser?.publicMetadata?.role;
+  const raw = roleFromMetadata(clerkUser);
   if (raw !== "client" && raw !== "freelancer") return null;
   return normalizeRole(raw);
 }
@@ -126,7 +143,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   const clerkUser = await currentUser();
   if (!clerkUser) return null;
 
-  const role = normalizeRole(clerkUser.publicMetadata?.role);
+  const role = normalizeRole(roleFromMetadata(clerkUser));
   const email =
     clerkUser.primaryEmailAddress?.emailAddress ??
     clerkUser.emailAddresses?.[0]?.emailAddress ??

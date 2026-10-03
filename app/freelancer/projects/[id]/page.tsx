@@ -1,4 +1,8 @@
 import { getProject } from "@/actions/projects";
+import { shareService } from "@/services/share-service";
+import ShareClientLink from "@/components/share-client-link";
+import ProjectDiscussion from "@/components/project-discussion";
+import ProjectTasksSection from "@/components/project-tasks-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -111,6 +115,7 @@ export default async function ProjectDetailPage({
   if (!result.success) notFound();
 
   const project = result.project as Project;
+  const links = await shareService.listShareLinks(id).catch(() => []);
   const milestones = toArray<{ due_date?: string | Date | null }>(
     project.milestones,
   ).sort(
@@ -199,6 +204,13 @@ export default async function ProjectDetailPage({
           <Progress value={progress} className="h-2" />
         </CardContent>
       </Card>
+
+      <ShareClientLink projectId={id} links={links} />
+
+      <ProjectDiscussion projectId={id} />
+
+      {/* F9 kolaborasi: kanban + kalender + feed (section tambahan, halaman utuh tak diubah). */}
+      <ProjectTasksSection projectId={id} />
 
       <nav
         className="flex gap-1 border-b border-border"

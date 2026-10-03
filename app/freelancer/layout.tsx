@@ -38,6 +38,8 @@ import {
   TrendingUp,
   Receipt,
   Sparkles,
+  Timer,
+  Rocket,
 } from "lucide-react";
 import { Fragment } from "react";
 import Link from "next/link";
@@ -99,8 +101,12 @@ export default function FreelancerLayout({
 
   const navInsights: NavItem[] = [
     { title: tf("nav.revenue"), icon: TrendingUp, href: "/freelancer/dashboard" },
+    { title: "Laporan", icon: TrendingUp, href: "/freelancer/reports" },
     { title: tf("nav.invoices"), icon: Receipt, href: "/freelancer/dashboard" },
     { title: tf("nav.milestones"), icon: Milestone, href: "/freelancer/dashboard" },
+    // Wave integrasi: rute F10/F11 yang di-TODO-kan kini ada di nav.
+    { title: "Waktu & Bon", icon: Timer, href: "/freelancer/time" },
+    { title: "Growth", icon: Rocket, href: "/freelancer/growth" },
   ];
 
   useKeyboardShortcuts([

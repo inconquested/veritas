@@ -2,6 +2,22 @@ import { Xendit, Invoice } from "xendit-node";
 import { PaymentGatewayStrategy } from "./constants";
 import { XenditChargeInvoiceInput, type XenditPaymentResult } from "@/schemas";
 
+/**
+ * Seconds from `now` until `due_date`, clamped to a minimum of 60s so a
+ * past-due or imminent deadline never sends 0/negative to Xendit.
+ * Falls back to 24h when no usable due date is provided.
+ */
+export function xenditDurationFor(
+  due_date?: Date | string | number | null,
+  now: Date = new Date(),
+): number {
+  const fallback = 24 * 3600;
+  if (due_date == null) return fallback;
+  const due = due_date instanceof Date ? due_date : new Date(due_date);
+  if (Number.isNaN(due.getTime())) return fallback;
+  return Math.max(60, Math.ceil((due.getTime() - now.getTime()) / 1000));
+}
+
 export class XenditStrategy implements PaymentGatewayStrategy {
   private readonly xenditInvoiceClient: Invoice;
 
@@ -32,7 +48,7 @@ export class XenditStrategy implements PaymentGatewayStrategy {
           currency: currency,
           payerEmail: input.payerEmail || undefined,
           description: invoiceTitle,
-          invoiceDuration: 10 * 60, // 10 minutes
+          invoiceDuration: xenditDurationFor(input.due_date),
           items: [
             {
               name: invoiceTitle,

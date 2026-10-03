@@ -7,6 +7,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { NextIntlClientProvider } from "next-intl";
+import { SwRegister } from "@/components/sw-register";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
@@ -14,6 +15,7 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 export const metadata: Metadata = {
   title: "Veritas - Your projects, your control",
   description: "A transparent client command center for your projects",
+  manifest: "/manifest.webmanifest",
 };
 
 export default function RootLayout({
@@ -35,6 +37,7 @@ export default function RootLayout({
                 <NextIntlClientProvider>
                   {children}
                   <Toaster />
+                  <SwRegister />
                 </NextIntlClientProvider>
               </SidebarProvider>
             </TooltipProvider>

@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { randomUUID } from "node:crypto";
 import { CreateProjectInput, UpdateProjectInput } from "@/schemas";
 import { SearchQueryParams } from "./constants";
 import { Prisma } from "@/generated/prisma/client";
@@ -58,7 +59,7 @@ export class ProjectService {
             ...raw,
             brief_image_urls,
             thumb_url,
-            access_key: "",
+            access_key: randomUUID(),
             freelancer: { connect: { id: freelancerId } },
             client: { connect: { id: clientId } },
           },
